@@ -2,6 +2,7 @@ util = require "./util"
 bcrypt = require "bcrypt"
 _ = require "lodash"
 
+#设备各种属性的检测
 class SimpleAuth
 
   constructor: (@dependencies={}) ->
@@ -10,6 +11,7 @@ class SimpleAuth
   asyncCallback : (error, result, callback) =>
     _.defer( => callback(error, result))
 
+# 判断源设备是否在目的设备的白名单或黑名单中
   checkLists: (fromDevice, toDevice, whitelist, blacklist, openByDefault) =>
     return false if !fromDevice || !toDevice
 
@@ -23,6 +25,7 @@ class SimpleAuth
 
     openByDefault
 
+#    判断源设备是否可以配置目标设备
   canConfigure: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
       callback = message
@@ -113,6 +116,7 @@ class SimpleAuth
     @asyncCallback(null, result, callback)
 
   canReceive: (fromDevice, toDevice, message, callback) =>
+#    间接实现多参数
     if _.isFunction message
       callback = message
       message = null

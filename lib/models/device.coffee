@@ -20,6 +20,7 @@ class Device
     @set attributes
     {@uuid} = attributes
 
+# 根据ip地址添加设备的物理地址
   addGeo: (callback=->) =>
     return _.defer callback unless @attributes.ipAddress?
 
@@ -27,6 +28,7 @@ class Device
       @attributes.geo = geo
       callback()
 
+# 添加hashToken到attributes.token和redis中
   addHashedToken: (callback=->) =>
     token = @attributes.token
     return _.defer callback, null, null unless token?
@@ -49,6 +51,7 @@ class Device
 
       callback()
 
+# 根据uuid查找设备,若redis不存在device,则从mongoDB中找到device并将其缓存入redis中
   fetch: (callback=->) =>
     return _.defer callback, null, @fetch.cache if @fetch.cache?
 
@@ -96,6 +99,7 @@ class Device
       @removeTokenFromCache token
       @update $unset : {"meshblu.tokens.#{hashedToken}"}, callback
 
+# 处理参数,使其符合存入mongoDB中的要求
   sanitize: (params) =>
     return params unless _.isObject(params) || _.isArray(params)
 
@@ -110,6 +114,7 @@ class Device
 
     new Error message.replace("MongoError: ")
 
+# 注册设备，保存设备
   save: (callback=->) =>
     return callback @error unless @validate()
     async.series [
@@ -121,6 +126,7 @@ class Device
       debug 'save', @attributes
       @update $set: @attributes, callback
 
+#  设置设备的参数
   set: (attributes)=>
     @attributes ?= {}
     @attributes = _.extend {}, @attributes, @sanitize(attributes)
@@ -140,6 +146,7 @@ class Device
       @_storeTokenInCache hashedToken
       @update $set: {"meshblu.tokens.#{hashedToken}" : tokenData}, callback
 
+#  判断修改后的uuid与当前的uuid是否一致
   validate: =>
     if @attributes.uuid? && @uuid != @attributes.uuid
       @error = new Error('Cannot modify uuid')
@@ -147,6 +154,7 @@ class Device
 
     return true
 
+#    验证根token的hash
   verifyRootToken: (ogToken, callback=->) =>
     debug "verifyRootToken: ", ogToken
 
@@ -159,6 +167,7 @@ class Device
         @_storeTokenInCache @_hashToken(ogToken) if verified
         callback null, verified
 
+#  验证meshblu中token的hash
   verifySessionToken: (token, callback=->) =>
     try
       hashedToken = @_hashToken token
@@ -198,6 +207,7 @@ class Device
     params = _.cloneDeep params
     keys   = _.keys(params)
 
+#   若params缺省，则至少设置uuid
     if _.all(keys, (key) -> _.startsWith key, '$')
       params['$set'] ?= {}
       params['$set'].uuid = @uuid
@@ -205,10 +215,10 @@ class Device
       params.uuid = @uuid
 
     debug 'update', @uuid, params
-
+#    将设备存入devices所在的mongodb数据库
     @devices.update uuid: @uuid, params, (error, result) =>
       return callback @sanitizeError(error) if error?
-
+#    若配置redis，则将设备从redis缓存中清除
       @clearCache @uuid, =>
         @fetch.cache = null
         @_hashDevice (hashDeviceError) =>
@@ -220,6 +230,7 @@ class Device
     return callback null, false unless @redis?.del?
     @redis.del "tokens:#{@uuid}", callback
 
+#  更新设备的hashToken
   _hashDevice: (callback=->) =>
     debug '_hashDevice', @uuid
     @devices.findOne uuid: @uuid, (error, data) =>
@@ -247,19 +258,23 @@ class Device
     @fetch (error, attributes) =>
       publisher.publish 'config', @uuid, attributes, callback
 
+#  将设备的token和uuid的键值对保存在redis中
   _storeTokenInCache: (token, callback=->) =>
     return callback null, false unless @redis?.sadd?
     @redis.sadd "tokens:#{@uuid}", token, callback
 
+#    将最后验证失败的token放入黑名单,加快后续请求的验证速度
   _storeInvalidTokenInBlacklist: (token, callback=->) =>
     return callback null, false unless @redis?.sadd?
     @redis.sadd "tokens:blacklist:#{@uuid}", token, callback
 
+#    判断redis中是否有设备的指定token
   _verifyTokenInCache: (token, callback=->) =>
     return callback null, false unless @redis?.sismember?
     hashedToken = @_hashToken token
     @redis.sismember "tokens:#{@uuid}", hashedToken, callback
 
+#    判断token是否在设备的token黑名单中
   _isTokenInBlacklist: (token, callback=->) =>
     return callback null, false unless @redis?.sismember?
     @redis.sismember "tokens:blacklist:#{@uuid}", token, callback

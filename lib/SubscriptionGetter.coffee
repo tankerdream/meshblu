@@ -19,6 +19,7 @@ class SubscriptionGetter
 
       @subscriptions.find query, (error, subscriptions) =>
         return callback error if error?
+#        取出所有对应uuid的列表
         uuids = _.pluck subscriptions, 'subscriberUuid'
 
         @_getDevices uuids, (error, devices) =>
@@ -28,11 +29,13 @@ class SubscriptionGetter
             return callback error if error?
             callback null, _.pluck devices, 'uuid'
 
+#  获取uuid列表对应的所有设备
   _getDevices: (uuids, callback) =>
     async.mapSeries uuids, (uuid, next) =>
       @getDevice uuid, next
     , callback
 
+# 对设备列表进行过滤,删除不能接受信息的设备,如源设备在目标设备的黑名单中的情况
   _filterCanReceive: (emitterDevice, devices, callback) =>
     async.mapSeries devices, (toDevice, next) =>
       @simpleAuth.canReceive toDevice, emitterDevice, (error, canReceive) =>

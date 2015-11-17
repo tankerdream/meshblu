@@ -3,6 +3,7 @@ config = require '../config'
 redis = require './redis'
 debug = require('debug')('meshblu:message-io-emitter')
 
+#消息发送器
 class MessageIOEmitter
   constructor: (dependencies={}) ->
     @emitters = []

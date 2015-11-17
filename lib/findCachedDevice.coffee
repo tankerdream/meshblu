@@ -3,6 +3,7 @@ config = require './../config'
 redis = require './redis'
 debug = require('debug')('meshblu:findCachedDevice')
 
+#在缓存中查找设备
 findCachedDevice = (uuid, callback) ->
   unless config.redis && config.redis.host
     callback null
