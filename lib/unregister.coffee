@@ -23,6 +23,7 @@ module.exports = (fromDevice, unregisterUuid, unregisterToken, emitToClient, cal
       else
         messageIOEmitter toDevice.uuid, 'unregistered', toDevice
 
+#     从mongodb删除设备
       devices.remove { uuid: unregisterUuid }, (err, devicedata) ->
         if err or devicedata == 0
           callback

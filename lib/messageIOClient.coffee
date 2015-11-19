@@ -13,7 +13,7 @@ class MessageIOClient extends EventEmitter2
     namespace ?= 'meshblu'
     @topicMap = {}
     @subscriber = new Subscriber namespace: namespace
-    @subscriber.on 'message', @_onMessage
+    @subscriber.on 'message', @_onMessage  //加入data,config的处理函数
 
   close: =>
     @subscriber.close()
@@ -33,6 +33,7 @@ class MessageIOClient extends EventEmitter2
       @subscriber.unsubscribe type, uuid, done
     , callback
 
+# 格式化topic,将其加入topicMap
   _addTopics: (uuid, topics=['*']) =>
     topics = [topics] unless _.isArray topics
     [skips, names] = _.partition topics, (topic) => _.startsWith topic, '-'
@@ -72,6 +73,7 @@ class MessageIOClient extends EventEmitter2
     _.any uuids, (uuid) =>
       @_topicMatch uuid, topic
 
+# 匹配忽略主题或者订阅主题的规则
   _topicMatch: (uuid, topic) =>
     @_addTopics uuid unless @topicMap[uuid]?
 

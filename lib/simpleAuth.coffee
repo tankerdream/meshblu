@@ -115,6 +115,7 @@ class SimpleAuth
     result = @checkLists fromDevice, toDevice, discoverAsWhitelist, toDevice?.discoverAsBlacklist, true
     @asyncCallback(null, result, callback)
 
+#
   canReceive: (fromDevice, toDevice, message, callback) =>
 #    间接实现多参数
     if _.isFunction message

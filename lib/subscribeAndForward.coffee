@@ -56,6 +56,7 @@ subscribeAndForward = (askingDevice, response, uuid, token, requestedSubscriptio
 
         requestedSubscriptionTypes ?= authorizedSubscriptionTypes
         requestedSubscriptionTypes = _.union requestedSubscriptionTypes, ['config', 'data']
+#       保证订阅类型的合法性
         subscriptionTypes = _.intersection requestedSubscriptionTypes, authorizedSubscriptionTypes
 
         messageIOClient = connectMessageIO(response, payloadOnly)

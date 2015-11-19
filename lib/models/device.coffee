@@ -79,6 +79,7 @@ class Device
     hashedToken = @_hashToken token
     @redis.srem "tokens:#{@uuid}", hashedToken, callback
 
+# 重置token
   resetToken: (callback) =>
     newToken = @generateToken()
     @set token: newToken
@@ -132,6 +133,7 @@ class Device
     @attributes = _.extend {}, @attributes, @sanitize(attributes)
     @attributes.online = !!@attributes.online if @attributes.online?
 
+# 存储设备的token
   storeToken: (token, callback=_.noop)=>
     @fetch (error, attributes) =>
       return callback error if error?
@@ -181,6 +183,7 @@ class Device
       @_storeTokenInCache hashedToken if verified
       callback null, verified
 
+# 最后验证不通过,则将token存入黑名单中
   verifyToken: (token, callback=->) =>
     return callback new Error('No token provided') unless token?
 
@@ -203,11 +206,12 @@ class Device
             @_storeInvalidTokenInBlacklist token
             return callback null, false
 
+# 将设备信息存入mongodb
   update: (params, callback=->) =>
     params = _.cloneDeep params
     keys   = _.keys(params)
 
-#   若params缺省，则至少设置uuid
+#   判断是否是'$set'
     if _.all(keys, (key) -> _.startsWith key, '$')
       params['$set'] ?= {}
       params['$set'].uuid = @uuid
@@ -218,7 +222,7 @@ class Device
 #    将设备存入devices所在的mongodb数据库
     @devices.update uuid: @uuid, params, (error, result) =>
       return callback @sanitizeError(error) if error?
-#    若配置redis，则将设备从redis缓存中清除
+#    若配置redis，则将设备原来的信息从redis缓存中清除
       @clearCache @uuid, =>
         @fetch.cache = null
         @_hashDevice (hashDeviceError) =>
@@ -226,6 +230,7 @@ class Device
             return callback @sanitizeError(hashDeviceError) if hashDeviceError?
             callback sendConfigError
 
+# 清除缓存中uuid和token的键值对
   _clearTokenCache: (callback=->) =>
     return callback null, false unless @redis?.del?
     @redis.del "tokens:#{@uuid}", callback
@@ -254,6 +259,7 @@ class Device
     hasher.update @config.token
     hasher.digest 'base64'
 
+# 若设备配置成功,则向设备发送配置信息
   _sendConfig: (callback) =>
     @fetch (error, attributes) =>
       publisher.publish 'config', @uuid, attributes, callback

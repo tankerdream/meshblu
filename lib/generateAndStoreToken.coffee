@@ -1,5 +1,6 @@
 _ = require 'lodash'
 
+#
 generateAndStoreToken = (ownerDevice, targetUuid, callback=_.noop, dependencies={}) =>
   Device = dependencies.Device ? require('./models/device')
   getDevice = dependencies.getDevice ? require('./getDevice')
