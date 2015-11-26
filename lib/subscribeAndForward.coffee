@@ -14,15 +14,13 @@ subscribeAndForwardWithToken = (response, uuid, token, requestedSubscriptionType
 
 connectMessageIO = (response, payloadOnly=false) ->
   messageIOClient = new MessageIOClient()
-  readStream = new Readable
-  readStream._read = _.noop
-  readStream.pipe response
   messageIOClient.on 'message', (message) ->
+
     debug 'onMessage', message
     if payloadOnly
       message = message?.payload
 
-    readStream.push JSON.stringify(message) + '\n'
+    response.write(JSON.stringify(message))
 
   return messageIOClient
 
@@ -40,19 +38,13 @@ subscribeAndForward = (askingDevice, response, uuid, token, requestedSubscriptio
       if !permission && subscribedDevice.owner != askingDevice.uuid
         return response.status(401).send(error: 'unauthorized')
 
-      authorizedSubscriptionTypes = []
-      authorizedSubscriptionTypes.push 'broadcast'
-
-      securityImpl.canReceiveAs askingDevice, subscribedDevice, (error, permission) ->
-        if error
-          return response.status(401).send(error: 'unauthorized')
-
-        if permission
-          authorizedSubscriptionTypes.push 'broadcast'
-          authorizedSubscriptionTypes.push 'received'
-          authorizedSubscriptionTypes.push 'sent'
-          authorizedSubscriptionTypes.push 'config'
-          authorizedSubscriptionTypes.push 'data'
+      if permission
+        authorizedSubscriptionTypes = []
+        authorizedSubscriptionTypes.push 'broadcast'
+        authorizedSubscriptionTypes.push 'received'
+        authorizedSubscriptionTypes.push 'sent'
+        authorizedSubscriptionTypes.push 'config'
+        authorizedSubscriptionTypes.push 'data'
 
         requestedSubscriptionTypes ?= authorizedSubscriptionTypes
         requestedSubscriptionTypes = _.union requestedSubscriptionTypes, ['config', 'data']

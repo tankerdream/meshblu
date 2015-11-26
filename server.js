@@ -55,21 +55,6 @@ console.log("                 sss                              ");
 console.log('\Meshblu (formerly skynet.im) %s environment loaded... ', program.environment);
 console.log("");
 
-if (process.env.AIRBRAKE_KEY) {
-  var airbrakeErrors = require("./lib/airbrakeErrors");
-  airbrakeErrors.handleExceptions()
-} else {
-  process.on("uncaughtException", function(error) {
-    console.error(error.message, error.stack);
-    process.exit(1);
-  });
-}
-
-if (program.parent) {
-  process.stdout.write('Starting Parent connection...');
-  parentConnection = require('./lib/parentConnection')(config);
-  console.log(' done.');
-}
 
 if (program.coap) {
   process.stdout.write('Starting CoAP...');
@@ -77,21 +62,4 @@ if (program.coap) {
   console.log(' done.');
 }
 
-if (true || program.http || program.https) {
-  process.stdout.write('Starting HTTP/HTTPS...');
-  var httpServer = require('./lib/httpServer')(config, parentConnection);
-  console.log(' done.');
-}
 
-if (program.mdns) {
-  process.stdout.write('Starting mDNS...');
-  var mdnsServer = require('./lib/mdnsServer')(config);
-  mdnsServer.start();
-  console.log(' done.');
-}
-
-if (program.mqtt) {
-  process.stdout.write('Starting MQTT...');
-  var mqttServer = require('./lib/mqttServer')(config, parentConnection);
-  console.log(' done.');
-}

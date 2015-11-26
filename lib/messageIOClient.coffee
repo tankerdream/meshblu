@@ -13,7 +13,7 @@ class MessageIOClient extends EventEmitter2
     namespace ?= 'meshblu'
     @topicMap = {}
     @subscriber = new Subscriber namespace: namespace
-    @subscriber.on 'message', @_onMessage  //加入data,config的处理函数
+    @subscriber.on 'message', @_onMessage  #加入data,config的处理函数
 
   close: =>
     @subscriber.close()
