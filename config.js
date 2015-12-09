@@ -3,6 +3,7 @@ var winston = require('winston');
 var privateKey = 'hello';
 var publicKey = 'hey';
 
+
 module.exports = {
   mongo: {
     // databaseUrl: "192.168.1.105:6991/test"
@@ -22,6 +23,7 @@ module.exports = {
     // host: "192.168.1.105"
     host:"127.0.0.1"
   },
+
  messageBus: {
    port: 7777
  },

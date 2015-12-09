@@ -1,9 +1,10 @@
 {
   "name": "meshblu-server",
   "description": "communications platform and api for iot",
-  "version": "1.12.3",
+  "version": "1.14.10",
   "author": "Octoblu, Inc.",
   "dependencies": {
+    "@octoblu/redis-ns": "^0.1.1",
     "JSONStream": "~0.9.0",
     "async": "^0.9.0",
     "bcrypt": "^0.8.1",
@@ -26,7 +27,7 @@
     "meshblu-config": "^2.2.0",
     "meshblu-core-job-manager": "^1.2.2",
     "moment": "~2.8.1",
-    "mongojs": "git://github.com/octoblu/mongojs.git#f4c86bbd592fadec793e3a4b3a79cdce8bea5683",
+    "mongojs": "github:mafintosh/mongojs#4c407e3f53ca40147a750d6479ad216b777afa12",
     "morgan": "^1.6.1",
     "mosca": "~0.31.0",
     "mqtt": "~0.3.13",
@@ -59,14 +60,13 @@
     "skynet.im"
   ],
   "scripts": {
-    "start": "node ${NODE_FLAGS} server.js --http --mqtt",
+    "start": "node ${NODE_FLAGS} server.js --http --mqtt --coap",
     "integration-test": "./run-integration-tests.sh",
-    "test": "istanbul cover _mocha -- -R spec"
+    "test": "istanbul cover _mocha -- -R spec --require coffee-coverage/register-istanbul"
   },
   "main": "server.js",
   "devDependencies": {
     "chai": "^3.3.0",
-    "codeclimate-test-reporter": "^0.1.1",
     "coffee-coverage": "^0.6.3",
     "coffee-script": "^1.10.0",
     "fakeredis": "^0.3.4",

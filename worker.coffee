@@ -9,6 +9,9 @@ authDevice = require './lib/authDevice'
 sendMessageCreator = require './lib/sendMessage'
 createMessageIOEmitter = require './lib/createMessageIOEmitter'
 MessageIO = require './lib/MessageIO'
+RedisNS = require '@octoblu/redis-ns'
+
+NAMESPACE = process.env.JOB_QUEUE_NAMESPACE ? 'meshblu'
 
 class Worker
   constructor: ->
@@ -19,7 +22,7 @@ class Worker
     messageIO.setAdapter redisStore
 
     @_sendMessage = sendMessageCreator createMessageIOEmitter messageIO.io
-    @redis = redis.createClient()
+    @redis = new RedisNS NAMESPACE, redis.createClient()
 
   run: =>
     async.whilst @true, @popMessage, (error) =>
@@ -55,7 +58,7 @@ class Worker
 
   processJob: (job, benchmark, callback) =>
     debug 'processJob', benchmark.toString()
-    {auth,message,http} = job
+    {auth,message} = job
     {uuid,token} = auth
 
     @authDevice uuid, token, benchmark, (error, device) =>

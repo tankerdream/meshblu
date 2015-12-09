@@ -15,10 +15,15 @@ describe 'Device', ->
       @findCachedDevice = sinon.stub().yields null
       @config = token: 'totally-secret-yo'
       @redis =
+        get: sinon.stub()
         del: sinon.stub()
         sadd: sinon.stub()
         srem: sinon.stub()
         sismember: sinon.stub()
+        setex: sinon.stub()
+
+      @redis.get.yields null
+      @redis.setex.yields null
 
       @dependencies =
         database: @database
@@ -319,7 +324,7 @@ describe 'Device', ->
       beforeEach (done) ->
         @sut = new Device uuid: @uuid, @dependencies
         @sut.generateToken = sinon.stub().returns 'cheeseburger'
-        @sut._hashToken = sinon.stub().returns 'this-is-totally-a-secret'
+        @sut._hashToken = sinon.stub().yields null, 'this-is-totally-a-secret'
         @sut._storeTokenInCache = sinon.stub().yields null
         @sut.generateAndStoreTokenInCache (@error, @token) => done()
       it 'should call _storeTokenInCache', ->
@@ -331,7 +336,7 @@ describe 'Device', ->
       beforeEach (done) ->
         @sut = new Device uuid: @uuid, @dependencies
         @sut.generateToken = sinon.stub().returns 'california burger'
-        @sut._hashToken = sinon.stub().returns 'this-is-totally-a-different-secret'
+        @sut._hashToken = sinon.stub().yields null, 'this-is-totally-a-different-secret'
         @sut._storeTokenInCache = sinon.stub().yields null
         @sut.generateAndStoreTokenInCache (@error, @token) => done()
 
@@ -514,7 +519,7 @@ describe 'Device', ->
     describe 'when redis client is available', ->
       beforeEach (done) ->
         @sut = new Device uuid: 'a-uuid', @dependencies
-        @sut._hashToken = sinon.stub().returns 'hashed-foo'
+        @sut._hashToken = sinon.stub().yields null, 'hashed-foo'
         @sut.removeTokenFromCache 'foo', (@error, @result) => done()
         @redis.srem.yield null, 1
 
@@ -567,19 +572,19 @@ describe 'Device', ->
           expect(@result).to.equal 1
 
         it 'should call redis.sismember', ->
-          expect(@redis.sismember).to.have.been.calledWith 'tokens:a-uuid', @sut._hashToken('foo')
+          expect(@redis.sismember).to.have.been.calledWith 'tokens:a-uuid', 'DnN1cXdfiInpeLs9VjOXM+C/1ow2nGv46TGrevRN3a0='
 
       describe 'when the member is not available in the set', ->
         beforeEach (done) ->
           @sut = new Device uuid: 'a-uuid', @dependencies
-          @sut._verifyTokenInCache 'foo', (@error, @result) => done()
+          @sut._verifyTokenInCache 'foo', (@error, @result) => done @error
           @redis.sismember.yield null, 0
 
         it 'should return the result of sismember', ->
           expect(@result).to.equal 0
 
         it 'should call redis.sismember', ->
-          expect(@redis.sismember).to.have.been.calledWith 'tokens:a-uuid', @sut._hashToken('foo')
+          expect(@redis.sismember).to.have.been.calledWith 'tokens:a-uuid', 'DnN1cXdfiInpeLs9VjOXM+C/1ow2nGv46TGrevRN3a0='
 
   describe '-> _isTokenInBlacklist', ->
     describe 'when redis client is not available', ->
@@ -648,27 +653,29 @@ describe 'Device', ->
 
   describe '->validate', ->
     describe 'when created with a different uuid', ->
-      beforeEach ->
+      beforeEach (done) ->
         @sut = new Device uuid: 'f853214e-69b9-4ca7-a11e-7ee7b1f8f5be', @dependencies
         @sut.set uuid: 'different-uuid'
-        @result = @sut.validate()
+        @sut.validate (@error, @result) =>
+          done()
 
-      it 'should return false', ->
+      it 'should yield false', ->
         expect(@result).to.be.false
 
-      it 'should set error on the device', ->
-        expect(@sut.error).to.exist
-        expect(@sut.error.message).to.equal 'Cannot modify uuid'
+      it 'should have an error', ->
+        expect(@error).to.exist
+        expect(@error.message).to.equal 'Cannot modify uuid'
 
     describe 'when updated with the same uuid', ->
-      beforeEach ->
+      beforeEach (done) ->
         @uuid = '758a080b-fd29-4413-8339-53cc5de3a649'
         @sut = new Device uuid: @uuid, @dependencies
         @sut.set uuid: @uuid
-        @result = @sut.validate()
+        @sut.validate (@error, @result) =>
+          done()
 
-      it 'should return true', ->
+      it 'should yield true', ->
         expect(@result).to.be.true
 
-      it 'should not set an error on the device', ->
-        expect(@sut.error).to.not.exist
+      it 'should not yield an error', ->
+        expect(@error).to.not.exist

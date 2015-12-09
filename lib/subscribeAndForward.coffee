@@ -14,6 +14,12 @@ subscribeAndForwardWithToken = (response, uuid, token, requestedSubscriptionType
 
 connectMessageIO = (response, payloadOnly=false) ->
   messageIOClient = new MessageIOClient()
+
+  readStream = new Readable
+  readStream._read = _.noop
+  readStream.pipe response
+
+
   messageIOClient.on 'message', (message) ->
 
     debug 'onMessage', message
@@ -21,6 +27,9 @@ connectMessageIO = (response, payloadOnly=false) ->
       message = message?.payload
 
     response.write(JSON.stringify(message))
+
+  response.on 'close', ->
+    messageIOClient.close()
 
   return messageIOClient
 

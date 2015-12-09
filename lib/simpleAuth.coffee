@@ -1,29 +1,47 @@
 util = require "./util"
+async = require 'async'
 bcrypt = require "bcrypt"
 _ = require "lodash"
+UUIDAliasResolver = require '../src/uuid-alias-resolver'
 
 #设备各种属性的检测
 class SimpleAuth
 
   constructor: (@dependencies={}) ->
-    @authDevice = @dependencies.authDevice || require './authDevice'
+    {aliasServerUri, @authDevice} = @dependencies
+    @authDevice ?= require './authDevice'
+    @uuidAliasResolver = new UUIDAliasResolver {}, {@redis, aliasServerUri}
 
-  asyncCallback : (error, result, callback) =>
-    _.defer( => callback(error, result))
+  asyncCallback: (error, result, callback) =>
+    _.defer callback, error, result
 
 # 判断源设备是否在目的设备的白名单或黑名单中
-  checkLists: (fromDevice, toDevice, whitelist, blacklist, openByDefault) =>
-    return false if !fromDevice || !toDevice
+  _checkLists: (fromDevice, toDevice, whitelist, blacklist, openByDefault, callback) =>
+    @_resolveList whitelist, (error, resolvedWhitelist) =>
+      return callback error if error?
 
-    return true if toDevice.uuid == fromDevice.uuid
 
-    return true if _.contains whitelist, '*'
+      @_resolveList blacklist, (error, resolvedBlacklist) =>
+        return callback error if error?
 
-    return  _.contains(whitelist, fromDevice.uuid) if whitelist?
+        toDeviceAlias = toDevice.uuid
+        fromDeviceAlias = fromDevice.uuid
 
-    return !_.contains(blacklist, fromDevice.uuid) if blacklist?
+        @uuidAliasResolver.resolve toDeviceAlias, (error, toDeviceUuid) =>
+          return callback error if error?
 
-    openByDefault
+          @uuidAliasResolver.resolve fromDeviceAlias, (error, fromDeviceUuid) =>
+            return callback error if error?
+
+            return callback null, true if toDeviceUuid == fromDeviceUuid
+
+            return callback null, true if _.contains resolvedWhitelist, '*'
+
+            return callback null, _.contains(resolvedWhitelist, fromDeviceUuid) if resolvedWhitelist?
+
+            return callback null, !_.contains(resolvedBlacklist, fromDeviceUuid) if resolvedBlacklist?
+
+            callback null, openByDefault
 
 #    判断源设备是否可以配置目标设备
   canConfigure: (fromDevice, toDevice, message, callback) =>
@@ -31,33 +49,37 @@ class SimpleAuth
       callback = message
       message = null
 
-    return @asyncCallback(null, true, callback) if @checkLists fromDevice, toDevice, toDevice?.configureWhitelist, toDevice?.configureBlacklist, false
-
     return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
 
-    return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid
+    @_checkLists fromDevice, toDevice, toDevice.configureWhitelist, toDevice.configureBlacklist, false, (error, inList) =>
+      return callback error if error?
+      return callback null, true if inList
 
-    if toDevice.owner?
-      return @asyncCallback(null, true, callback) if toDevice.owner == fromDevice.uuid
-    else
-      return @asyncCallback(null, true, callback) if util.sameLAN(fromDevice.ipAddress, toDevice.ipAddress)
+      return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid
 
-    if message?.token
-      return @authDevice(
-        toDevice.uuid
-        message.token
-        (error, result) =>
-          return @asyncCallback(error, false, callback) if error?
-          return @asyncCallback(null, result?, callback)
-       )
+      if toDevice.owner?
+        return @asyncCallback(null, true, callback) if toDevice.owner == fromDevice.uuid
+      else
+        return @asyncCallback(null, true, callback) if util.sameLAN(fromDevice.ipAddress, toDevice.ipAddress)
 
-    return @asyncCallback(null, false, callback)
+      if message?.token
+        return @authDevice(
+          toDevice.uuid
+          message.token
+          (error, result) =>
+            return @asyncCallback(error, false, callback) if error?
+            return @asyncCallback(null, result?, callback)
+         )
+
+      @asyncCallback(null, false, callback)
 
   canConfigureAs: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
       callback = message
       message = null
 
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+
     if message?.token
       return @authDevice(
         toDevice.uuid
@@ -67,37 +89,44 @@ class SimpleAuth
           return @asyncCallback(null, result?, callback)
        )
 
-    configureAsWhitelist = _.cloneDeep toDevice?.configureAsWhitelist
+    configureAsWhitelist = _.cloneDeep toDevice.configureAsWhitelist
     unless configureAsWhitelist
       configureAsWhitelist = []
-      configureAsWhitelist.push toDevice.owner if toDevice?.owner
+      configureAsWhitelist.push toDevice.owner if toDevice.owner
 
-    result = @checkLists fromDevice, toDevice, configureAsWhitelist, toDevice?.configureAsBlacklist, true
-    @asyncCallback(null, result, callback)
+    @_checkLists fromDevice, toDevice, configureAsWhitelist, toDevice.configureAsBlacklist, true, (error, inList) =>
+      return callback error if error?
+      callback null, inList
 
   canDiscover: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
       callback = message
       message = null
 
-    return @asyncCallback(null, true, callback) if @checkLists fromDevice, toDevice, toDevice?.discoverWhitelist, toDevice?.discoverBlacklist, true
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
 
-    if message?.token
-      return @authDevice(
-        toDevice.uuid
-        message.token
-        (error, result) =>
-          return @asyncCallback(error, false, callback) if error?
-          return @asyncCallback(null, result?, callback)
-       )
+    @_checkLists fromDevice, toDevice, toDevice.discoverWhitelist, toDevice.discoverBlacklist, true, (error, inList) =>
+      return callback error if error?
+      return callback null, true if inList
 
-    return @asyncCallback(null, false, callback)
+      if message?.token
+        return @authDevice(
+          toDevice.uuid
+          message.token
+          (error, result) =>
+            return @asyncCallback(error, false, callback) if error?
+            return @asyncCallback(null, result?, callback)
+         )
+
+      @asyncCallback(null, false, callback)
 
   canDiscoverAs: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
       callback = message
       message = null
 
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+
     if message?.token
       return @authDevice(
         toDevice.uuid
@@ -107,13 +136,14 @@ class SimpleAuth
           return @asyncCallback(null, result?, callback)
        )
 
-    discoverAsWhitelist = _.cloneDeep toDevice?.discoverAsWhitelist
+    discoverAsWhitelist = _.cloneDeep toDevice.discoverAsWhitelist
     unless discoverAsWhitelist
       discoverAsWhitelist = []
-      discoverAsWhitelist.push toDevice.owner if toDevice?.owner
+      discoverAsWhitelist.push toDevice.owner if toDevice.owner
 
-    result = @checkLists fromDevice, toDevice, discoverAsWhitelist, toDevice?.discoverAsBlacklist, true
-    @asyncCallback(null, result, callback)
+    @_checkLists fromDevice, toDevice, discoverAsWhitelist, toDevice.discoverAsBlacklist, true, (error, inList) =>
+      return callback error if error?
+      callback null, inList
 
 #
   canReceive: (fromDevice, toDevice, message, callback) =>
@@ -122,6 +152,8 @@ class SimpleAuth
       callback = message
       message = null
 
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+
     if message?.token
       return @authDevice(
         toDevice.uuid
@@ -131,14 +163,17 @@ class SimpleAuth
           return @asyncCallback(null, result?, callback)
        )
 
-    result = @checkLists fromDevice, toDevice, toDevice?.receiveWhitelist, toDevice?.receiveBlacklist, true
-    @asyncCallback(null, result, callback)
+    @_checkLists fromDevice, toDevice, toDevice.receiveWhitelist, toDevice.receiveBlacklist, true, (error, inList) =>
+      return callback error if error?
+      callback null, inList
 
   canReceiveAs: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
       callback = message
       message = null
 
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+
     if message?.token
       return @authDevice(
         toDevice.uuid
@@ -148,19 +183,22 @@ class SimpleAuth
           return @asyncCallback(null, result?, callback)
        )
 
-    receiveAsWhitelist = _.cloneDeep toDevice?.receiveAsWhitelist
+    receiveAsWhitelist = _.cloneDeep toDevice.receiveAsWhitelist
     unless receiveAsWhitelist
       receiveAsWhitelist = []
-      receiveAsWhitelist.push toDevice.owner if toDevice?.owner
+      receiveAsWhitelist.push toDevice.owner if toDevice.owner
 
-    result = @checkLists fromDevice, toDevice, receiveAsWhitelist, toDevice?.receiveAsBlacklist, true
-    @asyncCallback(null, result, callback)
+    @_checkLists fromDevice, toDevice, receiveAsWhitelist, toDevice.receiveAsBlacklist, true, (error, inList) =>
+      return callback error if error?
+      callback null, inList
 
   canSend: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
       callback = message
       message = null
 
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+
     if message?.token
       return @authDevice(
         toDevice.uuid
@@ -170,14 +208,17 @@ class SimpleAuth
           return @asyncCallback(null, result?, callback)
        )
 
-    result = @checkLists fromDevice, toDevice, toDevice?.sendWhitelist, toDevice?.sendBlacklist, true
-    @asyncCallback(null, result, callback)
+    @_checkLists fromDevice, toDevice, toDevice.sendWhitelist, toDevice.sendBlacklist, true, (error, inList) =>
+      return callback error if error?
+      callback null, inList
 
   canSendAs: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
       callback = message
       message = null
 
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+
     if message?.token
       return @authDevice(
         toDevice.uuid
@@ -187,13 +228,17 @@ class SimpleAuth
           return @asyncCallback(null, result?, callback)
        )
 
-    sendAsWhitelist = _.cloneDeep toDevice?.sendAsWhitelist
+    sendAsWhitelist = _.cloneDeep toDevice.sendAsWhitelist
     unless sendAsWhitelist
       sendAsWhitelist = []
-      sendAsWhitelist.push toDevice.owner if toDevice?.owner
+      sendAsWhitelist.push toDevice.owner if toDevice.owner
 
-    result = @checkLists fromDevice, toDevice, sendAsWhitelist, toDevice?.sendAsBlacklist, true
-    @asyncCallback(null, result, callback)
+    @_checkLists fromDevice, toDevice, sendAsWhitelist, toDevice.sendAsBlacklist, true, (error, inList) =>
+      return callback error if error?
+      callback null, inList
 
+  _resolveList: (list, callback) =>
+    return callback null, list unless _.isArray list
+    async.map list, @uuidAliasResolver.resolve, callback
 
 module.exports = SimpleAuth

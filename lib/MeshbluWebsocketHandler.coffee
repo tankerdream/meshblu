@@ -53,6 +53,7 @@ class MeshbluWebsocketHandler extends EventEmitter
       @rateLimit @socket.id, type, (error) =>
         return @closeWithError error, [type,data], 429 if error?
         return @emit type, data if type == 'identity'
+        return @emit type, data if type == 'register'
 
         @authDevice @uuid, @token, (error, authedDevice)=>
           return @sendError 'unauthorized', [type, data], 401 if error?
@@ -209,23 +210,27 @@ class MeshbluWebsocketHandler extends EventEmitter
       @securityImpl.canReceive @authedDevice, subscribedDevice, (error, permission) =>
         return callback error if error?
 
-        requestedSubscriptionTypes = data.types
+        requestedSubscriptionTypes = data.types ? ['broadcast', 'received', 'sent']
 
         authorizedSubscriptionTypes = []
         authorizedSubscriptionTypes.push 'broadcast' if permission
 
-        if subscribedDevice.owner? && subscribedDevice.owner == @authedDevice.uuid
-          authorizedSubscriptionTypes.push 'received'
-          authorizedSubscriptionTypes.push 'sent'
-          authorizedSubscriptionTypes.push 'config'
-          authorizedSubscriptionTypes.push 'data'
+        @securityImpl.canReceiveAs @authedDevice, subscribedDevice, (error, permission) =>
+          return callback error if error?
 
-        requestedSubscriptionTypes = requestedSubscriptionTypes ? authorizedSubscriptionTypes
-        requestedSubscriptionTypes = _.union requestedSubscriptionTypes, ['config', 'data']
-        subscriptionTypes = _.intersection(requestedSubscriptionTypes, authorizedSubscriptionTypes)
+          if permission
+            authorizedSubscriptionTypes.push 'broadcast'
+            authorizedSubscriptionTypes.push 'received'
+            authorizedSubscriptionTypes.push 'sent'
+            authorizedSubscriptionTypes.push 'config'
+            authorizedSubscriptionTypes.push 'data'
 
-        @messageIOClient.subscribe subscribedDevice.uuid, subscriptionTypes
-        callback()
+          requestedSubscriptionTypes = requestedSubscriptionTypes ? authorizedSubscriptionTypes
+          requestedSubscriptionTypes = _.union requestedSubscriptionTypes, ['config', 'data']
+          subscriptionTypes = _.intersection(requestedSubscriptionTypes, authorizedSubscriptionTypes)
+
+          @messageIOClient.subscribe subscribedDevice.uuid, subscriptionTypes
+          callback()
 
   #socketio event handlers
   onSocketMessage: (data) =>

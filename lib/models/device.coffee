@@ -3,7 +3,9 @@ async  = require 'async'
 bcrypt = require 'bcrypt'
 crypto = require 'crypto'
 debug  = require('debug')('meshblu:model:device')
+UUIDAliasResolver = require '../../src/uuid-alias-resolver'
 Publisher = require '../Publisher'
+PublishConfig = require '../publishConfig'
 
 publisher = new Publisher
 
@@ -17,6 +19,8 @@ class Device
     @redis = dependencies.redis ? require '../redis'
     @findCachedDevice = dependencies.findCachedDevice ? require '../findCachedDevice'
     @cacheDevice = dependencies.cacheDevice ? require '../cacheDevice'
+    aliasServerUri = @config.aliasServer?.uri
+    @uuidAliasResolver = new UUIDAliasResolver {}, {@redis, aliasServerUri}
     @set attributes
     {@uuid} = attributes
 
@@ -55,29 +59,36 @@ class Device
   fetch: (callback=->) =>
     return _.defer callback, null, @fetch.cache if @fetch.cache?
 
-    @findCachedDevice @uuid, (error, device) =>
+    @_lookupAlias @uuid, (error, uuid) =>
       return callback error if error?
-      if device?
-        @fetch.cache = device
-        return callback null, device
+      @findCachedDevice uuid, (error, device) =>
+        return callback error if error?
+        if device?
+          @fetch.cache = device
+          return callback null, device
 
-      @devices.findOne uuid: @uuid, {_id: false}, (error, device) =>
-        @fetch.cache = device
-        return callback new Error('Device not found') unless device?
-        @cacheDevice device
-        callback null, @fetch.cache
+        @devices.findOne uuid: uuid, {_id: false}, (error, device) =>
+          @fetch.cache = device
+          return callback error if error?
+          return callback new Error('Device not found') unless device?
+          @cacheDevice device
+          callback null, @fetch.cache
 
   generateAndStoreTokenInCache: (callback=->)=>
     token = @generateToken()
-    hashedToken = @_hashToken token
-    @_storeTokenInCache hashedToken, (error) =>
+    @_hashToken token, (error, hashedToken) =>
       return callback error if error?
-      callback null, token
+      @_storeTokenInCache hashedToken, (error) =>
+        return callback error if error?
+        callback null, token
 
   removeTokenFromCache: (token, callback=->) =>
     return callback null, false unless @redis?.srem?
-    hashedToken = @_hashToken token
-    @redis.srem "tokens:#{@uuid}", hashedToken, callback
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      @_hashToken token, (error, hashedToken) =>
+        return callback error if error?
+        @redis.srem "tokens:#{uuid}", hashedToken, callback
 
 # 重置token
   resetToken: (callback) =>
@@ -92,13 +103,11 @@ class Device
     @fetch (error, attributes) =>
       return callback error if error?
 
-      try
-        hashedToken = @_hashToken token
-      catch error
-        return callback error
+      @_hashToken token, (error, hashedToken) =>
+        return callback error if error?
 
-      @removeTokenFromCache token
-      @update $unset : {"meshblu.tokens.#{hashedToken}"}, callback
+        @removeTokenFromCache token
+        @update $unset : {"meshblu.tokens.#{hashedToken}"}, callback
 
 # 处理参数,使其符合存入mongoDB中的要求
   sanitize: (params) =>
@@ -117,15 +126,17 @@ class Device
 
 # 注册设备，保存设备
   save: (callback=->) =>
-    return callback @error unless @validate()
-    async.series [
-      @addGeo
-      @addHashedToken
-      @addOnlineSince
-    ], (error) =>
-      return callback error if error?
-      debug 'save', @attributes
-      @update $set: @attributes, callback
+    @validate (error, isValid) =>
+      return callback error unless isValid
+
+      async.series [
+        @addGeo
+        @addHashedToken
+        @addOnlineSince
+      ], (error) =>
+        return callback error if error?
+        debug 'save', @attributes
+        @update $set: @attributes, callback
 
 #  设置设备的参数
   set: (attributes)=>
@@ -138,23 +149,22 @@ class Device
     @fetch (error, attributes) =>
       return callback error if error?
 
-      try
-        hashedToken = @_hashToken token
-      catch error
-        return callback error
+      @_hashToken token, (error, hashedToken) =>
+        return callback error if error?
 
-      debug 'storeToken', token, hashedToken
-      tokenData = createdAt: new Date()
-      @_storeTokenInCache hashedToken
-      @update $set: {"meshblu.tokens.#{hashedToken}" : tokenData}, callback
+        debug 'storeToken', token, hashedToken
+        tokenData = createdAt: new Date()
+        @_storeTokenInCache hashedToken
+        @update $set: {"meshblu.tokens.#{hashedToken}" : tokenData}, callback
+
 
 #  判断修改后的uuid与当前的uuid是否一致
-  validate: =>
-    if @attributes.uuid? && @uuid != @attributes.uuid
-      @error = new Error('Cannot modify uuid')
-      return false
-
-    return true
+  validate: (callback) =>
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      if @attributes.uuid? && uuid != @attributes.uuid
+        return callback new Error('Cannot modify uuid'), false
+      callback null, true
 
 #    验证根token的hash
   verifyRootToken: (ogToken, callback=->) =>
@@ -166,22 +176,21 @@ class Device
       bcrypt.compare ogToken, attributes.token, (error, verified) =>
         return callback error if error?
         debug "verifyRootToken: bcrypt.compare results: #{error}, #{verified}"
-        @_storeTokenInCache @_hashToken(ogToken) if verified
-        callback null, verified
+        @_hashToken ogToken, (error, hashedToken) =>
+          return callback error if error?
+          @_storeTokenInCache hashedToken if verified
+          callback null, verified
 
 #  验证meshblu中token的hash
   verifySessionToken: (token, callback=->) =>
-    try
-      hashedToken = @_hashToken token
-    catch error
-      return callback error
-
-    @fetch (error, attributes) =>
+    @_hashToken token, (error, hashedToken) =>
       return callback error if error?
+      @fetch (error, attributes) =>
+        return callback error if error?
 
-      verified = attributes?.meshblu?.tokens?[hashedToken]?
-      @_storeTokenInCache hashedToken if verified
-      callback null, verified
+        verified = attributes?.meshblu?.tokens?[hashedToken]?
+        @_storeTokenInCache hashedToken if verified
+        callback null, verified
 
 # 最后验证不通过,则将token存入黑名单中
   verifyToken: (token, callback=->) =>
@@ -211,78 +220,101 @@ class Device
     params = _.cloneDeep params
     keys   = _.keys(params)
 
-#   判断是否是'$set'
-    if _.all(keys, (key) -> _.startsWith key, '$')
-      params['$set'] ?= {}
-      params['$set'].uuid = @uuid
-    else
-      params.uuid = @uuid
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      if _.all(keys, (key) -> _.startsWith key, '$')
+        params['$set'] ?= {}
+        params['$set'].uuid = uuid
+      else
+        params.uuid = uuid
 
-    debug 'update', @uuid, params
+      debug 'update', uuid, params
 #    将设备存入devices所在的mongodb数据库
-    @devices.update uuid: @uuid, params, (error, result) =>
-      return callback @sanitizeError(error) if error?
+      @devices.update uuid: uuid, params, (error, result) =>
+        return callback @sanitizeError(error) if error?
 #    若配置redis，则将设备原来的信息从redis缓存中清除
-      @clearCache @uuid, =>
-        @fetch.cache = null
-        @_hashDevice (hashDeviceError) =>
-          @_sendConfig (sendConfigError) =>
-            return callback @sanitizeError(hashDeviceError) if hashDeviceError?
-            callback sendConfigError
+        @clearCache uuid, =>
+          @fetch.cache = null
+          @_hashDevice (hashDeviceError) =>
+            @_sendConfig (sendConfigError) =>
+              return callback @sanitizeError(hashDeviceError) if hashDeviceError?
+              callback sendConfigError
 
 # 清除缓存中uuid和token的键值对
   _clearTokenCache: (callback=->) =>
     return callback null, false unless @redis?.del?
-    @redis.del "tokens:#{@uuid}", callback
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      @redis.del "tokens:#{uuid}", callback
+
+  _lookupAlias: (alias, callback) =>
+    @uuidAliasResolver.resolve alias, callback
 
 #  更新设备的hashToken
   _hashDevice: (callback=->) =>
-    debug '_hashDevice', @uuid
-    @devices.findOne uuid: @uuid, (error, data) =>
+    # don't use @fetch to prevent side-effects
+    @_lookupAlias @uuid, (error, uuid) =>
       return callback error if error?
-      delete data.meshblu.hash if data?.meshblu?.hash
-      try
-        hashedToken = @_hashToken JSON.stringify(data)
-      catch error
-        return callback error
-      params = $set :
-        'meshblu.hash': hashedToken
-      debug 'updating hash', @uuid, params
-      @devices.update uuid: @uuid, params, callback
+      debug '_hashDevice', uuid
+      @devices.findOne uuid: uuid, (error, data) =>
+        return callback error if error?
+        delete data.meshblu.hash if data?.meshblu?.hash
+        @_hashToken JSON.stringify(data), (error, hashedToken) =>
+          return callback error if error
+          params = $set :
+            'meshblu.hash': hashedToken
+          debug 'updating hash', uuid, params
+          @devices.update uuid: uuid, params, callback
 
-  _hashToken: (token) =>
-    throw new Error 'Invalid Device UUID' unless @uuid?
+  _hashToken: (token, callback) =>
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      return callback new Error 'Invalid Device UUID' unless uuid?
 
-    hasher = crypto.createHash 'sha256'
-    hasher.update token
-    hasher.update @uuid
-    hasher.update @config.token
-    hasher.digest 'base64'
+      hasher = crypto.createHash 'sha256'
+      hasher.update token
+      hasher.update uuid
+      hasher.update @config.token
+
+      callback null, hasher.digest 'base64'
 
 # 若设备配置成功,则向设备发送配置信息
   _sendConfig: (callback) =>
-    @fetch (error, attributes) =>
-      publisher.publish 'config', @uuid, attributes, callback
+    @fetch (error, config) =>
+      return callback error if error?
+      @_lookupAlias @uuid, (error, uuid) =>
+        return callback error if error?
+        publishConfig = new PublishConfig uuid: uuid, config: config
+        publishConfig.publish callback
 
 #  将设备的token和uuid的键值对保存在redis中
   _storeTokenInCache: (token, callback=->) =>
     return callback null, false unless @redis?.sadd?
-    @redis.sadd "tokens:#{@uuid}", token, callback
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      @redis.sadd "tokens:#{uuid}", token, callback
 
 #    将最后验证失败的token放入黑名单,加快后续请求的验证速度
   _storeInvalidTokenInBlacklist: (token, callback=->) =>
     return callback null, false unless @redis?.sadd?
-    @redis.sadd "tokens:blacklist:#{@uuid}", token, callback
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      @redis.sadd "tokens:blacklist:#{uuid}", token, callback
 
 #    判断redis中是否有设备的指定token
   _verifyTokenInCache: (token, callback=->) =>
     return callback null, false unless @redis?.sismember?
-    hashedToken = @_hashToken token
-    @redis.sismember "tokens:#{@uuid}", hashedToken, callback
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      @_hashToken token, (error, hashedToken) =>
+        return callback error if error?
+        @redis.sismember "tokens:#{uuid}", hashedToken, callback
 
 #    判断token是否在设备的token黑名单中
   _isTokenInBlacklist: (token, callback=->) =>
     return callback null, false unless @redis?.sismember?
-    @redis.sismember "tokens:blacklist:#{@uuid}", token, callback
+    @_lookupAlias @uuid, (error, uuid) =>
+      return callback error if error?
+      @redis.sismember "tokens:blacklist:#{uuid}", token, callback
 
 module.exports = Device
