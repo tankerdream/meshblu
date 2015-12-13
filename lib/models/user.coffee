@@ -2,11 +2,11 @@ _      = require 'lodash'
 async  = require 'async'
 bcrypt = require 'bcrypt'
 crypto = require 'crypto'
-debug  = require('debug')('meshblu:model:user')
+debug  = require('debug')('show:model:user')
 
 class User
   constructor: (attributes={}, dependencies={}) ->
-    @users = dependencies.database?.devices ? require('../database').users
+    @users = dependencies.database?.devices ? require('../s_database').users
     @generateToken = dependencies.generateToken ? require '../generateToken'
     @clearCache = dependencies.clearCache ? require '../clearCache'
     @config = dependencies.config ? require '../../config'
@@ -21,7 +21,7 @@ class User
     @attributes.online = !!@attributes.online if @attributes.online?
 
 # 验证密码
-  verify: (psd, callback=->) =>
+  verifyPsd: (psd, callback=->) =>
     return callback new Error('No password provided') unless psd?
     @_verifyPsdInCache psd, (error, verified) =>
       return callback error if error?
@@ -80,14 +80,14 @@ class User
 
 #    验证根mongodb中的psd
   verifyRootPsd: (ogPsd, callback=->) =>
-    debug "verifyRootToken: ", ogPsd
+    debug "verifyRootPsd: ", ogPsd
 
     @fetch (error, attributes={}) =>
       return callback error, false if error?
       return callback null, false unless attributes.psd?
       callback null,(ogPsd == attributes.psd)
 
-#    判断redis中是否有设备的指定token
+#    判断redis中是否有设备的psd
   _verifyPsdInCache: (psd, callback=->) =>
     return callback null, false unless @redis?.sismember?
     @redis.sismember "psd:#{@uuid}", psd, callback
