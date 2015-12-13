@@ -19,3 +19,6 @@ coverage
 meshblu.json
 
 .startmeshblu.log
+
+#jsdoc
+doc
