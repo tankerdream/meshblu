@@ -8,8 +8,9 @@ module.exports = (uuid, token, callback=(->), dependencies={}) ->
   user = new User {uuid: uuid}, {config: dependencies.config}
   user.verifyPsd token, (error, verified) =>
     debug('verifyUserPsd', error.stack) if error?
+
     return callback error if error?
-    return callback new Error('Unable to find valid user') unless verified
+    return callback new Error('No permission to add device') unless verified
     user.fetch (error, attributes) =>
       debug('fetch user', error.stack) if error?
       return callback error if error?
