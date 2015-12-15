@@ -23,6 +23,7 @@ module.exports = (owner={},device={}, callback=_.noop, dependencies={}) =>
     return callback Error('No permission to add device'),null unless user?
 
     device = _.cloneDeep device
+    delete device.spsd
 
     register device,(error, newDevice)=>
       return callback error,null if error?
