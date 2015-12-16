@@ -21,6 +21,7 @@ class Subscriber extends EventEmitter2
     "#{@namespace}:#{type}:#{uuid}"
 
   _onMessage: (channel, messageStr) =>
+
     try
       message = JSON.parse messageStr
     catch
