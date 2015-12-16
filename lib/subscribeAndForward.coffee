@@ -14,17 +14,15 @@ subscribeAndForwardWithToken = (response, uuid, token, requestedSubscriptionType
 
 connectMessageIO = (response, payloadOnly=false) ->
   messageIOClient = new MessageIOClient()
-
-  readStream = new Readable
-  readStream._read = _.noop
-  readStream.pipe response
-
+#  readStream = new Readable
+#  readStream._read = _.noop
+#  readStream.pipe response
 
   messageIOClient.on 'message', (message) ->
-
     debug 'onMessage', message
     if payloadOnly
       message = message?.payload
+#    readStream.push JSON.stringify(message) + '\n'
 
     response.write(JSON.stringify(message))
 
@@ -37,27 +35,32 @@ subscribeAndForward = (askingDevice, response, uuid, token, requestedSubscriptio
   uuid = uuid || askingDevice.uuid
   if token
     return subscribeAndForwardWithToken(response, uuid, token, requestedSubscriptionTypes, payloadOnly, topics)
-  newSubscriptionTypes = []
+
   getDevice uuid, (error, subscribedDevice) ->
     if error
-      return response.status(401).send(error: 'unauthorized')
+      return response.json(error: 'unauthorized')
     securityImpl.canReceive askingDevice, subscribedDevice, (error, permission) ->
       if error
-        return response.status(401).send(error: 'unauthorized')
+        return response.json(error: 'unauthorized')
       if !permission && subscribedDevice.owner != askingDevice.uuid
-        return response.status(401).send(error: 'unauthorized')
+        return response.json(error: 'unauthorized')
 
-      if permission
-        authorizedSubscriptionTypes = []
-        authorizedSubscriptionTypes.push 'broadcast'
-        authorizedSubscriptionTypes.push 'received'
-        authorizedSubscriptionTypes.push 'sent'
-        authorizedSubscriptionTypes.push 'config'
-        authorizedSubscriptionTypes.push 'data'
+      authorizedSubscriptionTypes = []
+      authorizedSubscriptionTypes.push 'broadcast'
+
+      securityImpl.canReceiveAs askingDevice, subscribedDevice, (error, permission) ->
+        if error
+          return response.json(error: 'unauthorized')
+
+        if permission
+          authorizedSubscriptionTypes.push 'broadcast'
+          authorizedSubscriptionTypes.push 'received'
+          authorizedSubscriptionTypes.push 'sent'
+          authorizedSubscriptionTypes.push 'config'
+          authorizedSubscriptionTypes.push 'data'
 
         requestedSubscriptionTypes ?= authorizedSubscriptionTypes
         requestedSubscriptionTypes = _.union requestedSubscriptionTypes, ['config', 'data']
-#       保证订阅类型的合法性
         subscriptionTypes = _.intersection requestedSubscriptionTypes, authorizedSubscriptionTypes
 
         messageIOClient = connectMessageIO(response, payloadOnly)
