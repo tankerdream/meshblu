@@ -62,7 +62,6 @@ subscribeAndForward = (askingDevice, response, uuid, token, requestedSubscriptio
         requestedSubscriptionTypes ?= authorizedSubscriptionTypes
         requestedSubscriptionTypes = _.union requestedSubscriptionTypes, ['config', 'data']
         subscriptionTypes = _.intersection requestedSubscriptionTypes, authorizedSubscriptionTypes
-
         messageIOClient = connectMessageIO(response, payloadOnly)
         messageIOClient.subscribe uuid, subscriptionTypes, topics
 

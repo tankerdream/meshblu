@@ -8,6 +8,7 @@ class Publisher
 
   publish: (type, uuid, message, callback) =>
     channel = "#{@namespace}:#{type}:#{uuid}"
+#    console.log channel
     return callback new Error("Invalid message") unless message?
     @client.publish channel, JSON.stringify(message), callback
 

@@ -145,7 +145,7 @@ class SimpleAuth
       return callback error if error?
       callback null, inList
 
-#
+#一般设备只能接收目的设备的广播消息
   canReceive: (fromDevice, toDevice, message, callback) =>
 #    间接实现多参数
     if _.isFunction message
@@ -167,6 +167,7 @@ class SimpleAuth
       return callback error if error?
       callback null, inList
 
+#  其它设备是否可以代替目的设备接收目的设备的sent,receive等信息
   canReceiveAs: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
       callback = message

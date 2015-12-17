@@ -22,3 +22,6 @@ meshblu.json
 
 #jsdoc
 doc
+
+#FileWatcher Coffescript debug
+FileWatcher
