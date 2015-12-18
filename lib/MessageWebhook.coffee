@@ -1,17 +1,18 @@
 _ = require 'lodash'
 config = require '../config'
-Device = require './models/device'
 
 class MessageWebhook
   @HTTP_SIGNATURE_OPTIONS:
     keyId: 'meshblu-webhook-key'
     key: config.privateKey
-    headers: [ 'date', 'X-MESHBLU-UUID']
+    headers: [ 'date', 'X-MESHBLU-UUID' ]
 
-  constructor: (@uuid, @options, dependencies={}) ->
-    @request = dependencies.request ? require 'request'
-    @device = dependencies.device
-    @device ?= new Device uuid: @uuid
+  constructor: (options, dependencies={}) ->
+    {@uuid, @options, @type} = options
+    {@request, @device} = dependencies
+    @request ?= require 'request'
+    Device = require './models/device'
+    @device ?= new Device {@uuid}
 
   generateAndForwardMeshbluCredentials: (callback=->) =>
     @device.generateAndStoreTokenInCache callback
@@ -39,6 +40,10 @@ class MessageWebhook
   doRequest: (options, message={}, callback) =>
     deviceOptions = _.omit @options, 'generateAndForwardMeshbluCredentials', 'signRequest'
     options = _.defaults json: message, deviceOptions, options
+    options.headers ?= {}
+
+    options.headers['X-MESHBLU-MESSAGE-TYPE'] = @type
+
     @request options, (error, response) =>
       return callback error if error?
       return callback new Error "HTTP Status: #{response.statusCode}" unless _.inRange response.statusCode, 200, 300

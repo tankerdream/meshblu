@@ -5,9 +5,8 @@ crypto = require 'crypto'
 debug  = require('debug')('meshblu:model:device')
 UUIDAliasResolver = require '../../src/uuid-alias-resolver'
 Publisher = require '../Publisher'
-PublishConfig = require '../publishConfig'
 
-publisher = new Publisher
+publisher = new Publisher namespace: 'meshblu'
 
 class Device
   constructor: (attributes={}, dependencies={}) ->
@@ -21,6 +20,7 @@ class Device
     @cacheDevice = dependencies.cacheDevice ? require '../cacheDevice'
     aliasServerUri = @config.aliasServer?.uri
     @uuidAliasResolver = new UUIDAliasResolver {}, {@redis, aliasServerUri}
+    @PublishConfig = require '../publishConfig'
     @set attributes
     {@uuid} = attributes
 
@@ -83,12 +83,12 @@ class Device
         callback null, token
 
   removeTokenFromCache: (token, callback=->) =>
-    return callback null, false unless @redis?.srem?
+    return callback null, false unless @redis?.del?
     @_lookupAlias @uuid, (error, uuid) =>
       return callback error if error?
       @_hashToken token, (error, hashedToken) =>
         return callback error if error?
-        @redis.srem "tokens:#{uuid}", hashedToken, callback
+        @redis.del "meshblu-token-cache:#{uuid}:#{hashedToken}", callback
 
 # 重置token
   resetToken: (callback) =>
@@ -284,37 +284,38 @@ class Device
       return callback error if error?
       @_lookupAlias @uuid, (error, uuid) =>
         return callback error if error?
-        publishConfig = new PublishConfig uuid: uuid, config: config
-        publishConfig.publish callback
+        publishConfig = new @PublishConfig {uuid, config, database: {@devices}}
+        publishConfig.publish => # don't wait for the publisher
+        callback()
 
 #  将设备的token和uuid的键值对保存在redis中
-  _storeTokenInCache: (token, callback=->) =>
-    return callback null, false unless @redis?.sadd?
+  _storeTokenInCache: (hashedToken, callback=->) =>
+    return callback null, false unless @redis?.set?
     @_lookupAlias @uuid, (error, uuid) =>
       return callback error if error?
-      @redis.sadd "tokens:#{uuid}", token, callback
+      @redis.set "meshblu-token-cache:#{uuid}:#{hashedToken}", '', callback
 
 #    将最后验证失败的token放入黑名单,加快后续请求的验证速度
   _storeInvalidTokenInBlacklist: (token, callback=->) =>
-    return callback null, false unless @redis?.sadd?
+    return callback null, false unless @redis?.set?
     @_lookupAlias @uuid, (error, uuid) =>
       return callback error if error?
-      @redis.sadd "tokens:blacklist:#{uuid}", token, callback
+      @redis.set "meshblu-token-black-list:#{uuid}:#{token}", '', callback
 
 #    判断redis中是否有设备的指定token
   _verifyTokenInCache: (token, callback=->) =>
-    return callback null, false unless @redis?.sismember?
+    return callback null, false unless @redis?.exists?
     @_lookupAlias @uuid, (error, uuid) =>
       return callback error if error?
       @_hashToken token, (error, hashedToken) =>
         return callback error if error?
-        @redis.sismember "tokens:#{uuid}", hashedToken, callback
+        @redis.exists "meshblu-token-cache:#{uuid}:#{hashedToken}", callback
 
 #    判断token是否在设备的token黑名单中
   _isTokenInBlacklist: (token, callback=->) =>
-    return callback null, false unless @redis?.sismember?
+    return callback null, false unless @redis?.exists?
     @_lookupAlias @uuid, (error, uuid) =>
       return callback error if error?
-      @redis.sismember "tokens:blacklist:#{uuid}", token, callback
+      @redis.exists "meshblu-token-black-list:#{uuid}:#{token}", callback
 
 module.exports = Device

@@ -1,15 +1,23 @@
+_ = require 'lodash'
+async = require 'async'
+
 class Publisher
   constructor: (options={}, dependencies={}) ->
     {@namespace} = options
-    {@client} = dependencies
+    {@client,@devices,@subscriptions} = dependencies
     @namespace ?= 'meshblu'
     {createClient} = require './redis'
-    @client ?= createClient()
+    @client ?= _.bindAll createClient()
+    PublishForwarder = require '../src/publish-forwarder'
+    @publishForwarder = new PublishForwarder {publisher: @}, {@devices, @subscriptions}
 
   publish: (type, uuid, message, callback) =>
     channel = "#{@namespace}:#{type}:#{uuid}"
-#    console.log channel
-    return callback new Error("Invalid message") unless message?
-    @client.publish channel, JSON.stringify(message), callback
+    return callback new Error 'Invalid message' unless message?
+    async.series [
+      async.apply @client.publish, channel, JSON.stringify(message)
+      async.apply @publishForwarder.forward, {type, uuid, message}
+    ], callback
+
 
 module.exports = Publisher
