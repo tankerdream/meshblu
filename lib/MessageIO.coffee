@@ -1,6 +1,7 @@
 config = require '../config'
 debug = require('debug')('meshblu:message-io')
 
+#集群内部消息总线
 class MessageIO
   constructor: (dependencies={})->
     @SocketIO = dependencies.SocketIO ? require 'socket.io'
