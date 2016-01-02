@@ -83,40 +83,10 @@ describe 'SocketLogic Events', ->
       it 'should have a result.error', ->
         expect(@result.error.message).to.equal "Device not found"
 
-  describe 'EVENT localdevices', ->
-    describe 'when called with a valid request', ->
-      beforeEach (done) ->
-        @meshblu.localdevices (@result) => done()
-
-      it 'should not have an error', ->
-        expect(@result.error).to.not.exist
-
-      it 'should have a devices array', ->
-        expect(@result.devices).to.be.an 'array'
-
-  describe 'EVENT unclaimeddevices', ->
-    describe 'when called with a valid request', ->
-      beforeEach (done) ->
-        @meshblu.register {}, =>
-          @meshblu.unclaimeddevices {}, (@result) => done()
-
-      it 'should not have an error', ->
-        expect(@result.error).to.not.exist
-
-      it 'should have a devices array', ->
-        expect(@result.devices).to.be.an 'array'
-
-    describe 'when called with an invalid request', ->
-      beforeEach (done) ->
-        @meshblu.unclaimeddevices {uuid: 'invalid-uuid'}, (@result) => done()
-
-      it 'should have a result error', ->
-        expect(@result.error).to.exist
-
   describe 'EVENT claimdevice', ->
     describe 'when called with a valid request', ->
       beforeEach (done) ->
-        @meshblu.register configWhitelist: ['*'], (data) =>
+        @meshblu.register configureWhitelist: ['*'], (data) =>
           return done new Error data.error if data.error?
 
           @newDevice = data
@@ -155,7 +125,7 @@ describe 'SocketLogic Events', ->
   describe 'EVENT resetToken', ->
     describe 'when called with a valid request', ->
       beforeEach (done) ->
-        @meshblu.register configWhitelist: ['*'], (@newDevice) =>
+        @meshblu.register configureWhitelist: ['*'], (@newDevice) =>
           return done new Error @newDevice.error if @newDevice.error?
           @meshblu.resetToken @newDevice.uuid, (@result) =>
             return done new Error @result.error if @result.error?
@@ -174,7 +144,7 @@ describe 'SocketLogic Events', ->
   describe 'EVENT generateAndStoreToken', ->
     describe 'when called with a valid request', ->
       beforeEach (done) ->
-        @meshblu.register configWhitelist: ['*'], (data) =>
+        @meshblu.register configureWhitelist: ['*'], (data) =>
           return done new Error data.error if data.error?
 
           @newDevice = data
@@ -184,6 +154,20 @@ describe 'SocketLogic Events', ->
 
       it 'should have a different token', ->
         expect(@result.token).to.not.equal @newDevice.token
+
+    describe 'when called with a valid tag request', ->
+      beforeEach (done) ->
+        @meshblu.register configureWhitelist: ['*'], (data) =>
+          return done new Error data.error if data.error?
+
+          @newDevice = data
+          @meshblu.generateAndStoreToken uuid: @newDevice.uuid, tag: 'some-tag', (@result) =>
+            return done new Error @result.error if @result.error?
+            done()
+
+      it 'should have the correct result', ->
+        expect(@result.token).to.not.equal @newDevice.token
+        expect(@result.tag).to.equal 'some-tag'
 
     describe 'when called with an invalid request', ->
       beforeEach (done) ->
@@ -195,7 +179,7 @@ describe 'SocketLogic Events', ->
   describe 'EVENT revokeToken', ->
     describe 'when called with a valid request', ->
       beforeEach (done) ->
-        @meshblu.register configWhitelist: ['*'], (data) =>
+        @meshblu.register configureWhitelist: ['*'], (data) =>
           return done new Error data.error if data.error?
 
           @meshblu.generateAndStoreToken uuid: data.uuid, (device) =>
@@ -225,9 +209,6 @@ describe 'SocketLogic Events', ->
 
       it 'should have a token', ->
         expect(@result.token).to.exist
-
-      it 'should have a ipAddress', ->
-        expect(@result.ipAddress).to.equal '127.0.0.1'
 
       it 'should have online = false', ->
         expect(@result.online).to.be.false

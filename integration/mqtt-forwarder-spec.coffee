@@ -120,7 +120,7 @@ describe 'MQTT Forwarder Events', ->
     describe 'when called with a valid request', ->
       beforeEach (done) ->
         meshbluHTTP = new MeshbluHTTP _.pick @config, 'server', 'port'
-        meshbluHTTP.register configWhitelist: ['*'], (error, device) =>
+        meshbluHTTP.register configureWhitelist: ['*'], (error, device) =>
           return done error if error?
 
           @newDevice = device
@@ -160,11 +160,12 @@ describe 'MQTT Forwarder Events', ->
     describe 'when called with a valid request', ->
       beforeEach (done) ->
         meshbluHTTP = new MeshbluHTTP _.pick @config, 'server', 'port'
-        meshbluHTTP.register configWhitelist: ['*'], (error, device) =>
+        meshbluHTTP.register configureWhitelist: ['*'], (error, device) =>
           return done error if error?
 
           @newDevice = device
           @meshblu.generateAndStoreToken uuid: @newDevice.uuid, (error, data) =>
+            return done new Error error if error?
             return done new Error error.message if data.error?
             @eventForwarder.once 'message', (@message) =>
               done()

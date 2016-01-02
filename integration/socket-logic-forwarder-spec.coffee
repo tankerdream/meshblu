@@ -138,60 +138,13 @@ describe 'SocketLogic Forwarder Events', ->
             params: {$set: {foo: 'bar', uuid: 'invalid-uuid'}}
         }
 
-  describe 'EVENT localdevices', ->
-    describe 'when called with a valid request', ->
-      beforeEach (done) ->
-        @eventForwarder.on 'message', (@message) =>
-          done() if @message.topic == 'localdevices'
-        @meshblu.localdevices =>
-
-      it 'should send a "localdevices" message', ->
-        expect(@message.topic).to.deep.equal 'localdevices'
-        expect(_.omit @message.payload, '_timestamp').to.deep.equal {
-          fromIp: '127.0.0.1'
-          fromUuid: @device.uuid
-          request: {}
-        }
-
-  describe 'EVENT unclaimeddevices', ->
-    describe 'when called with a valid request', ->
-      beforeEach (done) ->
-        @eventForwarder.on 'message', (@message) =>
-          done() if @message.topic == 'unclaimeddevices'
-        @meshblu.unclaimeddevices {}, (error) =>
-
-      it 'should send a "unclaimeddevices" message', ->
-        expect(@message.topic).to.deep.equal 'unclaimeddevices'
-        expect(_.omit @message.payload, '_timestamp').to.deep.equal {
-          fromIp: '127.0.0.1'
-          fromUuid: @device.uuid
-          request: {}
-        }
-
-    describe 'when called with an invalid request', ->
-      beforeEach (done) ->
-        @eventForwarder.on 'message', (@message) =>
-          done() if @message.topic == 'unclaimeddevices-error'
-
-        @meshblu.unclaimeddevices {uuid: 'invalid-uuid'}, (error) =>
-
-      it 'should send an "unclaimeddevices-error" message', ->
-        expect(@message.topic).to.deep.equal 'unclaimeddevices-error'
-        expect(_.omit @message.payload, '_timestamp').to.deep.equal {
-          fromUuid: @device.uuid
-          fromIp: "127.0.0.1"
-          error: "Devices not found"
-          request:
-            uuid: 'invalid-uuid'
-        }
-
   describe 'EVENT claimdevice', ->
     describe 'when called with a valid request', ->
       beforeEach (done) ->
         @eventForwarder.on 'message', (@message) =>
           done() if @message.topic == 'claimdevice'
 
-        @meshblu.register configWhitelist: ['*'], (data) =>
+        @meshblu.register configureWhitelist: ['*'], (data) =>
           return done new Error data.error if data.error?
 
           @newDevice = data
@@ -200,9 +153,8 @@ describe 'SocketLogic Forwarder Events', ->
 
       it 'should send a "claimdevice" message', ->
         expect(@message.topic).to.deep.equal 'claimdevice'
-        expect(_.omit @message.payload, '_timestamp').to.deep.equal {
+        expect(_.omit @message.payload, ['_timestamp', 'fromIp']).to.deep.equal {
           fromUuid: @device.uuid
-          fromIp:   "127.0.0.1"
           request:
             uuid: @newDevice.uuid
         }
@@ -216,9 +168,8 @@ describe 'SocketLogic Forwarder Events', ->
 
       it 'should send an "claimdevice-error" message', ->
         expect(@message.topic).to.deep.equal 'claimdevice-error'
-        expect(_.omit @message.payload, '_timestamp').to.deep.equal {
+        expect(_.omit @message.payload, ['_timestamp', 'fromIp']).to.deep.equal {
           fromUuid: @device.uuid
-          fromIp:   '127.0.0.1'
           error:    'Device not found'
           request:
             uuid: 'invalid-uuid'
@@ -258,7 +209,7 @@ describe 'SocketLogic Forwarder Events', ->
       beforeEach (done) ->
         @eventForwarder.on 'message', (@message) =>
           done() if @message.topic == 'resettoken'
-        @meshblu.register configWhitelist: ['*'], (data) =>
+        @meshblu.register configureWhitelist: ['*'], (data) =>
           return done new Error data.error if data.error?
 
           @newDevice = data
@@ -294,7 +245,7 @@ describe 'SocketLogic Forwarder Events', ->
       beforeEach (done) ->
         @eventForwarder.on 'message', (@message) =>
           done() if @message.topic == 'generatetoken'
-        @meshblu.register configWhitelist: ['*'], (data) =>
+        @meshblu.register configureWhitelist: ['*'], (data) =>
           return done new Error data.error if data.error?
 
           @newDevice = data
@@ -331,7 +282,7 @@ describe 'SocketLogic Forwarder Events', ->
         @eventForwarder.on 'message', (@message) =>
           done() if @message.topic == 'revoketoken'
 
-        @meshblu.register configWhitelist: ['*'], (data) =>
+        @meshblu.register configureWhitelist: ['*'], (data) =>
           return done new Error data.error if data.error?
 
           @meshblu.generateAndStoreToken uuid: data.uuid, (device) =>
@@ -373,10 +324,6 @@ describe 'SocketLogic Forwarder Events', ->
 
       it 'should send a "register" message', ->
         expect(@message.topic).to.deep.equal 'register'
-        expect(_.omit @message.payload, '_timestamp').to.deep.equal {
-          request:
-            ipAddress: '127.0.0.1'
-        }
 
     describe 'when called with an invalid request', ->
       beforeEach (done) ->
@@ -386,12 +333,7 @@ describe 'SocketLogic Forwarder Events', ->
 
       it 'should send an "register-error" message', ->
         expect(@message.topic).to.deep.equal 'register-error'
-        expect(_.omit @message.payload, '_timestamp').to.deep.equal {
-          error:  'Device not updated'
-          request:
-            uuid: 'not-allowed'
-            ipAddress: '127.0.0.1'
-        }
+        expect(@message.payload.error).to.equal 'Device not updated'
 
   describe 'EVENT unregister', ->
     describe 'when called with a valid request', ->

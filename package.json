@@ -1,7 +1,7 @@
 {
   "name": "meshblu-server",
   "description": "communications platform and api for iot",
-  "version": "1.15.6",
+  "version": "1.17.1",
   "author": "Octoblu, Inc.",
   "dependencies": {
     "@octoblu/redis-ns": "^0.1.1",
@@ -73,7 +73,7 @@
     "grunt": "^0.4.5",
     "grunt-jsdoc": "^1.1.0",
     "istanbul": "^0.3.20",
-    "meshblu-http": "^3.5.10",
+    "meshblu-http": "^3.7.0",
     "meshblu-mqtt": "^3.1.0",
     "meshblu-socket.io": "^3.1.0",
     "meshblu-websocket": "^2.0.4",
