@@ -7,7 +7,7 @@ console.log "======================================================"
 
 if USE_MONGO
   mongojs = require 'mongojs'
-  MONGO_DATABASE = mongojs 'meshblu-test', ['users']
+  MONGO_DATABASE = mongojs 'meshblu-test', ['s_channels']
 
 class s_TestDatabase
   @createNedbCollection: (collection, callback=->) =>
@@ -24,7 +24,7 @@ class s_TestDatabase
       ], (error) => callback error, MONGO_DATABASE
     else
       async.parallel
-        users: (cb=->) => @createNedbCollection 'users', cb
+        s_channels: (cb=->) => @createNedbCollection 's_channels', cb
       , callback
 
 module.exports = s_TestDatabase
