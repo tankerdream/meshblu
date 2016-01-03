@@ -32,7 +32,8 @@ describe 's_register', ->
     beforeEach (done) ->
       storeDevice = (@error, @device) => done()
       @s_channel = {uuid:'valid-uuid'}
-      @sut @s_channel,null,storeDevice, @dependencies
+      @params = {channel:@s_channel}
+      @sut @s_channel,@params,storeDevice, @dependencies
 
     it 'should return an error', ->
       expect(@error.message).to.deep.equal 'Invalid channel'
@@ -45,7 +46,8 @@ describe 's_register', ->
       storeDevice = (@error, @device) => done()
       @s_channel = { uuid:'invalid-uuid',token:'invalid-token'}
       @s_authS_Channel.yields Error('Find error'),null
-      @sut @s_channel,null,storeDevice, @dependencies
+      @params = {channel:@s_channel}
+      @sut @s_channel,@params,storeDevice, @dependencies
 
     it 'should call s_authS_Channel()',->
       expect(@s_authS_Channel).to.have.been.called
@@ -57,8 +59,9 @@ describe 's_register', ->
     beforeEach (done) ->
       storeDevice = (@error, @device) => done()
       @s_channel = {uuid:'invalid-uuid',token:'invalid-token'}
-      @s_authS_Channel.yields null,@s_channel
-      @sut @s_channel,null,storeDevice, @dependencies
+      @s_authS_Channel.yields null,null
+      @params = {channel:@s_channel}
+      @sut @s_channel,@params,storeDevice, @dependencies
 
     it 'should return an error',->
       expect(@error.message).to.deep.equal 'No permission to add device'
@@ -72,7 +75,8 @@ describe 's_register', ->
       @s_channel = {uuid:'valid-uuid',token:'valid-token'}
       @s_authS_Channel.yields null,@s_channel
       @register.yields Error('Register failure'),null
-      @sut @s_channel,null,storeDevice, @dependencies
+      @params = {channel:@s_channel}
+      @sut @s_channel,@params,storeDevice, @dependencies
 
     it 'should call register()', ->
       expect(@register).to.have.been.called
@@ -86,7 +90,8 @@ describe 's_register', ->
       @s_channel = {uuid:'valid-uuid',token:'valid-token'}
       @s_authS_Channel.yields null,@s_channel
       @register.yields null,null
-      @sut @s_channel,null,storeDevice, @dependencies
+      @params = {channel:@s_channel}
+      @sut @s_channel,@params,storeDevice, @dependencies
 
     it 'should call register()', ->
       expect(@register).to.have.been.called
@@ -101,7 +106,8 @@ describe 's_register', ->
       @s_authS_Channel.yields null,@s_channel
       device = {uuid:'newDeviceUuid'}
       @register.yields null,device
-      @sut @s_channel,null,storeDevice, @dependencies
+      @params = {channel:@s_channel}
+      @sut @s_channel,@params,storeDevice, @dependencies
 
     it 'should call register()', ->
       expect(@register).to.have.been.called
