@@ -23,7 +23,8 @@ module.exports = (s_channel={},device={}, callback=_.noop, dependencies={}) =>
     return callback Error('No permission to add device'),null unless s_channel?
 
     device = _.cloneDeep device
-    delete device.channel.token
+    device.owner = device.channel.uuid
+    delete device.channel
 
     register device,(error, newDevice)=>
       return callback error,null if error?

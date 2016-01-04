@@ -12,7 +12,10 @@ describe 's_saveDataIfAuthorized', ->
     @sendMessage = sinon.stub()
     @moment = toISOString: sinon.stub().returns('a very important date')
     @Moment = sinon.spy => @moment
-
+    @params = {data:[
+        {key: 'temperature',val:23,timestamp:'2016-01-03T15:07:31.143Z'},
+        {key:'humidity',val:36}
+      ]}
     @dataDB = update: sinon.stub()
     @sendConfigActivity = sinon.spy()
 
@@ -33,9 +36,10 @@ describe 's_saveDataIfAuthorized', ->
 
     describe 'no toDeviceUuid only', ->
       beforeEach ->
-        @sut @sendMessage, {uuid: 'from-device'}, null, {key: 'temperature',val:23,other:'awful'}, @callback, @dependencies
+        params = @params
+        @sut @sendMessage, {uuid: 'from-device'}, null,params, @callback, @dependencies
 
-      it 'should call canSend with the fromDevice, the toDevice and the query', ->
+      it 'should not call canSend with the fromDevice, the toDevice and the query', ->
         expect(@canSend).to.not.have.been.called
         error = @callback.firstCall.args[0]
         expect(error).to.be.an.instanceOf Error
@@ -43,7 +47,9 @@ describe 's_saveDataIfAuthorized', ->
 
     describe 'no params.val and params.key', ->
       beforeEach ->
-        @sut @sendMessage, {uuid: 'from-device'}, 'to-device', {other:'awful'}, @callback, @dependencies
+        params = @params
+        params.data[0].other = 'awful'
+        @sut @sendMessage, {uuid: 'from-device'}, 'to-device', params, @callback, @dependencies
 
       it 'should call canSend with the fromDevice, the toDevice and the query', ->
         expect(@canSend).to.not.have.been.called
@@ -53,6 +59,7 @@ describe 's_saveDataIfAuthorized', ->
 
     describe 'no params.key', ->
       beforeEach ->
+        params = @params
         @sut @sendMessage, {uuid: 'from-device'}, 'to-device', {val:23,other:'awful'}, @callback, @dependencies
 
       it 'should call canSend with the fromDevice, the toDevice and the query', ->
@@ -63,6 +70,7 @@ describe 's_saveDataIfAuthorized', ->
 
     describe 'no params.val', ->
       beforeEach ->
+        params = @params
         @sut @sendMessage, {uuid: 'from-device'}, 'to-device', {kye:'temperature',other:'awful'}, @callback, @dependencies
 
       it 'should call canSend with the fromDevice, the toDevice and the query', ->
@@ -73,6 +81,7 @@ describe 's_saveDataIfAuthorized', ->
 
   describe 'when called with the valid data', ->
     beforeEach ->
+      params = @params
       @sut @sendMessage, {uuid: 'from-device'}, 'to-device', {key: 'temperature',val:23,other:'awful'}, @callback, @dependencies
 
     it 'should call canSend with the fromDevice, the toDevice and the query', ->
@@ -80,6 +89,7 @@ describe 's_saveDataIfAuthorized', ->
 
     describe 'when canSend yields an error', ->
       beforeEach ->
+        params = @params
         @canSend.yield new Error('Something really, really bad happened')
 
       it 'should call the callback with the error', ->

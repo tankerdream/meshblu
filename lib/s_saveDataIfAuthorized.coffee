@@ -1,29 +1,31 @@
 _ = require 'lodash'
+async = require 'async'
 
-module.exports = (sendMessage, fromDevice, toDeviceUuid, params, callback=_.noop, dependencies={}) ->
-  securityImpl = dependencies.securityImpl ? require './getSecurityImpl'
-  getDevice = dependencies.getDevice ? require './getDevice'
+sanitizeData = (data) ->
+
+  #TODO key是pm2.5时存储错误
+  tmpData = {}
+  tmpData.key = data.key
+  tmpData.val = data.val
+  tmpData.uuid = @fromUuid
+  tmpData.timestamp = @moment(data.timestamp).toISOString() || moment().toISOString()
+
+  return tmpData
+
+module.exports = (sendMessage, fromDevice, params, callback=_.noop, dependencies={}) ->
+
+  @moment = dependencies.moment ? require 'moment'
   dataDB = dependencies.dataDB ? require('./database').data
-  logEvent = dependencies.logEvent ? require './logEvent'
-  moment = dependencies.moment ? require 'moment'
+  @fromUuid = fromDevice.uuid
 
-  data = {}
-  data.uuid = toDeviceUuid
-  data.val = params?.val
-  key = params?.key
+  return callback Error('No data') unless params?.data?
 
-  return callback Error('Invalid data') unless data.uuid && data.val && key
+  return callback Error("Invalid data") unless _.every params.data,((data)=>data.val? && data.key?)
 
-  data.timestamp ?= moment().toISOString()
-  data.timestamp = moment(data.timestamp).toISOString()
+  @dataArray = _.map params.data,sanitizeData
 
-  getDevice toDeviceUuid, (error, toDevice) =>
-    return callback new Error(error.error.message) if error?
-    securityImpl.canSend fromDevice, toDevice, params, (error, permission) =>
-      return callback error if error?
-      return callback new Error('Owner has no permission to save data') unless permission
-
-      dataDB.update {'userUuid':toDevice.owner},{$push:{"#{key}":data}},(error,saved)->
-        return callback error if error?
-
-        callback null,saved
+  async.each @dataArray,(data,done) =>
+    dataDB.update {'channelUuid':fromDevice.owner},{$push:{"#{data.key}":data}},(error)->
+      done error if error?
+      done null
+  ,callback
