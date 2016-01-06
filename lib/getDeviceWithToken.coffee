@@ -10,7 +10,7 @@ module.exports = (uuid, callback=_.noop) ->
         error:
           uuid: uuid
           message: 'Device not found'
-          code: 404
+        code: 404
       return
 
     callback null, data
