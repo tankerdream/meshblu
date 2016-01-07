@@ -22,6 +22,8 @@ connectMessageIO = (response, payloadOnly=false) ->
 
     response.write(JSON.stringify(message))
 
+  response.write(JSON.stringify({"code":200,data:"successed"}))
+
   response.on 'close', ->
     messageIOClient.close()
 
