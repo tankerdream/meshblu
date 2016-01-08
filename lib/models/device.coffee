@@ -165,7 +165,7 @@ class Device
     @_lookupAlias @uuid, (error, uuid) =>
       return callback error if error?
       if @attributes.uuid? && uuid != @attributes.uuid
-        return callback new Error('Cannot modify uuid'), false
+        return callback new Error('Cannot modify uuid',400), false
       callback null, true
 
 #    验证根token的hash
