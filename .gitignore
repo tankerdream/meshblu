@@ -25,3 +25,5 @@ doc
 
 #FileWatcher Coffescript debug
 FileWatcher
+
+test-forwarded-for.sh
