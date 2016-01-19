@@ -31,7 +31,11 @@ module.exports = (device={}, callback=_.noop, dependencies={}) ->
 #    将device中的其他参数加入到devices表中
     debug 'about to update device', device
     oldUpdateDevice newDevice.uuid, device, (error, savedDevice) =>
+      debug 'oldUpdateDevice', error
       return callback new Error('Device not updated') if error?
+      debug 'updated', error
+      debug 'updated device', savedDevice
+
 #      savedDevice指已经保存了的设备
       logEvent 400, savedDevice
       savedDevice.token = device.token

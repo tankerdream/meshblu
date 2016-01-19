@@ -1,4 +1,5 @@
 _  = require 'lodash'
+debug = require('debug')('meshblu:oldUpdateDevice')
 Device = require './models/device'
 
 module.exports = (uuid, params={}, callback=_.noop, dependencies={})->
@@ -6,23 +7,25 @@ module.exports = (uuid, params={}, callback=_.noop, dependencies={})->
 
   delete params.configureBlacklist
 
-  banArray = [
-    "owner"
-    "authority"
-    "configureWhitlist"
-    "configureBlacklist"
-    "discoverWhitelist"
-    "discoverBlacklist"
-    "sendWhitelist"
-    "sendBlacklist"
-  ]
+#  banArray = [
+#    "owner"
+#    "authority"
+#    "configureWhitlist"
+#    "configureBlacklist"
+#    "discoverWhitelist"
+#    "discoverBlacklist"
+#    "sendWhitelist"
+#    "sendBlacklist"
+#  ]
+#
+#  for key, value of params
+#    return callback {code:604, error : {message: "Bad arguments"}} if _.includes banArray, key
 
-  for key, value of params
-    return callback {code:604, error : {message: "Bad arguments"}} if _.includes banArray, key
+  debug 'params',params
 
   device.set params
 
   device.save (error) =>
-#    console.log error
+    debug 'save',error
     return callback error if error?
     device.fetch callback

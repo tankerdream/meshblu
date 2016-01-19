@@ -126,6 +126,7 @@ class Device
 
 # 注册设备，保存设备
   save: (callback=->) =>
+    debug 'save','save'
     @validate (error, isValid) =>
       return callback error unless isValid
 
