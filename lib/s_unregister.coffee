@@ -35,7 +35,7 @@ module.exports = (fromDevice, unregisterUuid, unregisterToken, emitToClient, cal
             'code': 404
           return
 
-        s_channels.update {uuid:s_channelUuid},{$pull:{devices:unregisterUuid}},(err,data)->
+        s_channels.update {uuid:s_channelUuid},{$pull:{devices:unregisterUuid}},(err)->
           if err
             callback
               'message':'update failed'
