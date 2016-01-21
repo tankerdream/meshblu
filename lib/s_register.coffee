@@ -32,5 +32,9 @@ module.exports = (s_channel={},device={}, callback=_.noop, dependencies={}) =>
       return callback error,null if error?
       return callback Error('Register failure'),null unless newDevice
 
-      s_channels.update {"uuid":s_channel.uuid},{$addToSet:{"devices":newDevice.uuid}}
-      callback null,newDevice
+      s_channels.update {"uuid":s_channel.uuid},{$addToSet:{"devices":newDevice.uuid}},(err,data)->
+        if err
+          callback
+            'message':'update device to channel failed'
+            'code':500
+        callback null,newDevice
