@@ -5,6 +5,7 @@ debug = require('debug')('meshblu:getDeviceWithToken')
 module.exports = (uuid, callback=_.noop) ->
   debug 'getDeviceWithToken', uuid
   deviceFound = (error, data) ->
+    debug 'error', error
     if error || !data
       callback
         error:
@@ -12,7 +13,7 @@ module.exports = (uuid, callback=_.noop) ->
           message: 'Device not found'
         code: 404
       return
-
+    debug 'data',data
     callback null, data
 
   device = new Device uuid: uuid
