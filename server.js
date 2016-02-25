@@ -51,7 +51,7 @@ console.log("SS      HH   HH  OOO  OOO   WW   WW  WW   WW ");
 console.log("  SSS   HHHHHHH OOO    OOO   WW   WWWW   WW");
 console.log("     SS HH   HH  OOO  OOO     WW   WW  WW ");
 console.log("  SSS   HH   HH    OOOO        WWWW  WWW");
-console.log("                 sss                              ");
+console.log("                                         ");
 console.log('\Meshblu (formerly skynet.im) %s environment loaded... ', program.environment);
 console.log("");
 

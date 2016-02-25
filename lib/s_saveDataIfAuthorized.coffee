@@ -25,7 +25,11 @@ module.exports = (sendMessage, fromDevice, params, callback=_.noop, dependencies
   @dataArray = _.map params.data,sanitizeData
 
   async.each @dataArray,(data,done) =>
-    dataDB.update {'channelUuid':fromDevice.owner},{$addToSet:{"#{data.key}":data}},(error)->
+
+    key = data.key
+    delete data.key
+
+    dataDB.update {'channelUuid':fromDevice.owner},{$addToSet:{"#{key}":data}},(error)->
       done error if error?
       done null
   ,callback

@@ -10,6 +10,8 @@ module.exports = (s_channel={},device={}, callback=_.noop, dependencies={}) =>
   uuid  = s_channel.uuid
   token = s_channel.token
 
+  debug 's_channel uuid', uuid
+
   return callback Error('Invalid channel'),null unless uuid? && token?
 
   s_database = dependencies.s_database ? require('./s_database')
@@ -23,7 +25,10 @@ module.exports = (s_channel={},device={}, callback=_.noop, dependencies={}) =>
     return callback Error('No permission to add device'),null unless s_channel?
 
     device = _.cloneDeep device
-    device.owner = device.channel.uuid
+    device.owner = uuid
+
+    debug 'device channel', device
+
     delete device.channel
 
     register device,(error, newDevice)=>
