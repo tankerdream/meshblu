@@ -1,6 +1,8 @@
 {EventEmitter2} = require 'eventemitter2'
 {createClient}  = require './redis'
 
+debug = require('debug')('hyga:Subscriber')
+
 class Subscriber extends EventEmitter2
   constructor: ({@namespace}) ->
     @client = createClient()
@@ -11,7 +13,7 @@ class Subscriber extends EventEmitter2
 
   subscribe: (type, uuid, callback) =>
     channel = @_channel type, uuid
-#    console.log channel
+    debug 'channel', channel
     @client.subscribe channel, callback
 
   unsubscribe: (type, uuid, callback) =>

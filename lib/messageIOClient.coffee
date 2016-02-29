@@ -48,6 +48,7 @@ class MessageIOClient extends EventEmitter2
       topic = topic.replace(/\*/g, '.*?').replace(/^-/, '')
       new RegExp "^#{topic}$"
 
+    debug 'map',map
     @topicMap[uuid] = map
 
   _defaultTopics: =>
@@ -77,7 +78,7 @@ class MessageIOClient extends EventEmitter2
   _topicMatch: (uuid, topic) =>
     @_addTopics uuid unless @topicMap[uuid]?
 
-    debug 'topicMatch', @topicMap[uuid], topic
+    debug 'topicMatch', @topicMap, topic
     return false if _.any @topicMap[uuid].skips, (re) => re.test topic
     _.any @topicMap[uuid].names, (re) => re.test topic
 
