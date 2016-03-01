@@ -13,11 +13,12 @@ class Subscriber extends EventEmitter2
 
   subscribe: (type, uuid, callback) =>
     channel = @_channel type, uuid
-    debug 'channel', channel
+    debug 'subscribe channel', channel
     @client.subscribe channel, callback
 
   unsubscribe: (type, uuid, callback) =>
     channel = @_channel type, uuid
+    debug 'unsubscribe channel',channel
     @client.unsubscribe channel, callback
 
   _channel: (type, uuid) =>

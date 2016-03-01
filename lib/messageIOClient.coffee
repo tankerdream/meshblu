@@ -27,7 +27,10 @@ class MessageIOClient extends EventEmitter2
 
   unsubscribe: (uuid, subscriptionTypes, callback) =>
     subscriptionTypes ?= MessageIOClient.DEFAULT_SUBSCRIPTION_TYPES
+
     delete @topicMap[uuid]
+
+    debug 'unsubscribe',subscriptionTypes
 
     async.each subscriptionTypes, (type, done) =>
       @subscriber.unsubscribe type, uuid, done
