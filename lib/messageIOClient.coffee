@@ -58,6 +58,7 @@ class MessageIOClient extends EventEmitter2
 
   _onMessage: (channel, message) =>
     if _.contains channel, ':config:'
+      debug 'config',message
       @emit 'config', message
       return
 
@@ -68,9 +69,11 @@ class MessageIOClient extends EventEmitter2
     uuids = message?.devices
     uuids = [uuids] unless _.isArray uuids
     uuids = [message.fromUuid] if _.contains uuids, '*'
-
+#   订阅消息的主题在这一阶段才开始过滤
+#   处data,config类型消息,其它消息都以message类型发送
     if @_topicMatchUuids uuids, message?.topic
       debug 'relay message', message
+      debug 'channel', channel
       @emit 'message', message
 
   _topicMatchUuids: (uuids, topic) =>

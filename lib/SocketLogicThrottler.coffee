@@ -12,6 +12,7 @@ class SocketLogicThrottler
 
   throttle: (callback=->) => => # Not a typo, returning a curried function
     originalArguments = arguments
+    debug 'originalArguments', originalArguments
     new QueryThrottle().throttle @socket.id, @onThrottle, =>
       callback.apply this, originalArguments
 

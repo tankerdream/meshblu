@@ -70,7 +70,7 @@ class Device
         @devices.findOne uuid: uuid, {_id: false}, (error, device) =>
           @fetch.cache = device
           return callback error if error?
-          return callback new Error('Device not found') unless device?
+          return callback new Error('Device not founds') unless device?
           @cacheDevice device
           callback null, @fetch.cache
 
@@ -197,7 +197,7 @@ class Device
 
 # 最后验证不通过,则将token存入黑名单中
   verifyToken: (token, callback=->) =>
-    return callback new Error('No token provided') unless token?
+    return callback "{code:401,{error:'No token provided'}}" unless token?
 
     @_isTokenInBlacklist token, (error, blacklisted) =>
       return callback error if error?
@@ -290,6 +290,7 @@ class Device
   _sendConfig: (options, callback) =>
     {forwardedFor} = options
     @fetch (error, config) =>
+      delete config.token
       return callback error if error?
       @_lookupAlias @uuid, (error, uuid) =>
         return callback error if error?
