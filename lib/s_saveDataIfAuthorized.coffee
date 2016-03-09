@@ -1,5 +1,6 @@
 _ = require 'lodash'
 async = require 'async'
+hyGaError = require './models/hyGaError';
 
 sanitizeData = (data) ->
 
@@ -18,9 +19,9 @@ module.exports = (sendMessage, fromDevice, params, callback=_.noop, dependencies
   dataDB = dependencies.dataDB ? require('./database').data
   @fromUuid = fromDevice.uuid
 
-  return callback Error('No data') unless params?.data?
+  return callback hyGaError(400,'No data') unless params?.data?
 
-  return callback Error("Invalid data") unless _.every params.data,((data)=>data.val? && data.key?)
+  return callback hyGaError(400,"Invalid data") unless _.every params.data,((data)=>data.val? && data.key?)
 
   @dataArray = _.map params.data,sanitizeData
 

@@ -2,9 +2,8 @@
 hyGaError = (code,msg,data)->
   res =
     code:code
-    error:
-      data
-  res.msg = msg
+    error:msg
+  res.info = data
   return res
 
 module.exports = hyGaError

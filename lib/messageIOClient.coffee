@@ -7,7 +7,7 @@ debug = require('debug')('meshblu:message-io-client')
 Subscriber = require './Subscriber'
 
 class MessageIOClient extends EventEmitter2
-  @DEFAULT_SUBSCRIPTION_TYPES: []
+  @DEFAULT_SUBSCRIPTION_TYPES: ['received']
 
   constructor: ({namespace}={}, dependencies={}) ->
     namespace ?= 'meshblu'
