@@ -109,7 +109,7 @@ class Device
         @removeTokenFromCache token
         @update $unset : {"meshblu.tokens.#{hashedToken}"}, callback
 
-# 处理参数,使其符合存入mongoDB中的要求
+# 处理参数,使其符合存入mongoDB中的要求,防止非法操作mongoDB
   sanitize: (params) =>
     return params unless _.isObject(params) || _.isArray(params)
 
@@ -143,6 +143,7 @@ class Device
   set: (attributes)=>
     @attributes ?= {}
     @attributes = _.extend {}, @attributes, @sanitize(attributes)
+    debug 'set attributes', @attributes
     @attributes.online = !!@attributes.online if @attributes.online?
 
 # 存储设备的token
@@ -328,4 +329,13 @@ class Device
       return callback error if error?
       @redis.exists "meshblu-token-black-list:#{uuid}:#{token}", callback
 
+  pushList: (listName,list,callback=->) =>
+    @devices.update {'uuid':@uuid}, {$addToSet:{"#{listName}":{$each:list}}},(error)->
+      return callback error if error?
+      return callback null
+
+  pullList: (listName,list,callback=->) =>
+    @devices.update {'uuid':@uuid}, {$pullAll:{"#{listName}":list}},(error)->
+      return callback error if error?
+      return callback null
 module.exports = Device

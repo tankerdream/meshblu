@@ -31,6 +31,6 @@ module.exports = (sendMessage, fromDevice, params, callback=_.noop, dependencies
     delete data.key
 
     dataDB.update {'channelUuid':fromDevice.owner},{$addToSet:{"#{key}":data}},(error)->
-      done error if error?
-      done null
+      return done error if error?
+      return done null
   ,callback

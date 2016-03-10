@@ -10,7 +10,7 @@ module.exports = (uuid, params={}, callback=_.noop, dependencies={})->
 #  banArray = [
 #    "owner"
 #    "authority"
-#    "configureWhitlist"
+#    "configureWhitelist"
 #    "configureBlacklist"
 #    "discoverWhitelist"
 #    "discoverBlacklist"
