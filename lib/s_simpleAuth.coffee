@@ -3,6 +3,8 @@ bcrypt = require "bcrypt"
 _ = require "lodash"
 UUIDAliasResolver = require '../src/uuid-alias-resolver'
 
+debug = require("debug")("hyga:s_simpleAuth")
+
 #设备各种属性的检测
 class SimpleAuth
 
@@ -144,7 +146,13 @@ class SimpleAuth
             return @asyncCallback(null, result?, callback)
         )
 
-      @asyncCallback(null, false, callback)
+      defaultAuth = @_check_authority(fromDevice,toDevice)
+
+      debug 'canDiscover defaultAuth', defaultAuth
+
+      @_s_checkLists fromDevice, toDevice, toDevice.sendWhitelist, toDevice.sendBlacklist, defaultAuth, (error, inList) =>
+        return callback error callback error if error?
+        callback null, inList
 
   canDiscoverAs: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
@@ -235,15 +243,7 @@ class SimpleAuth
           return @asyncCallback(null, result?, callback)
       )
 
-    authority = toDevice.authority
-
-    switch authority
-      when "public"
-        defaultAuth = true
-      when "protected"
-        defaultAuth = @_s_isSameOwner fromDevice,toDevice
-      else
-        defaultAuth = false
+    defaultAuth = @_check_authority(fromDevice,toDevice)
 
     @_s_checkLists fromDevice, toDevice, toDevice.sendWhitelist, toDevice.sendBlacklist, defaultAuth, (error, inList) =>
       return callback error callback error if error?
@@ -281,5 +281,19 @@ class SimpleAuth
   _s_isSameOwner: (fromDevice,toDevice) =>
     return false if !fromDevice.owner || !toDevice.owner
     return fromDevice.owner == toDevice.owner
+
+  _check_authority: (fromDevice,toDevice) =>
+
+    authority = toDevice.authority
+
+    switch authority
+      when "public"
+        defaultAuth = true
+      when "protected"
+        defaultAuth = @_s_isSameOwner fromDevice,toDevice
+      else
+        defaultAuth = false
+
+    return defaultAuth
 
 module.exports = SimpleAuth
