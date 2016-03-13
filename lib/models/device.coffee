@@ -332,10 +332,12 @@ class Device
   pushList: (listName,list,callback=->) =>
     @devices.update {'uuid':@uuid}, {$addToSet:{"#{listName}":{$each:list}}},(error)->
       return callback error if error?
+#      TODO 清理redis,config通知
       return callback null
 
   pullList: (listName,list,callback=->) =>
     @devices.update {'uuid':@uuid}, {$pullAll:{"#{listName}":list}},(error)->
       return callback error if error?
       return callback null
+
 module.exports = Device

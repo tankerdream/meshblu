@@ -14,6 +14,7 @@ class MessageIOEmitter
   emit: (channel, topic, data) =>
     _.each @emitters, (emitter) ->
       debug 'emit', channel, topic, data
+#      channel为socket重的room,topic为触发的事件
       emitter.in(channel).emit(topic, data)
 
 module.exports = MessageIOEmitter

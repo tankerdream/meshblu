@@ -289,10 +289,10 @@ class SimpleAuth
     switch authority
       when "public"
         defaultAuth = true
-      when "protected"
-        defaultAuth = @_s_isSameOwner fromDevice,toDevice
-      else
+      when "private"
         defaultAuth = false
+      else
+        defaultAuth = @_s_isSameOwner fromDevice,toDevice
 
     return defaultAuth
 

@@ -8,6 +8,7 @@ class MessageIO
     @MessageIOSocketHandler = dependencies.MessageIOSocketHandler ? require './MessageIOSocketHandler'
 
   start: =>
+#    建立起namespace为config.messageBus.port的socket.io的client
     @io = @SocketIO config.messageBus.port
 
     @io.on 'connection', @onConnection

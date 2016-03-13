@@ -1,5 +1,7 @@
 debug = require('debug')('meshblu:resetToken')
 
+hyGaError = require('./models/hyGaError')
+
 resetToken  = (fromDevice, uuid, emitToClient, callback=(->), {securityImpl, getDevice, Device}={}) ->
   securityImpl ?= require './getSecurityImpl'
   getDevice ?= require './getDevice'
@@ -9,14 +11,14 @@ resetToken  = (fromDevice, uuid, emitToClient, callback=(->), {securityImpl, get
 
   getDevice uuid, (error, gotDevice) ->
     debug 'error',error
-    return callback 'invalid device' if error?
+    return callback hyGaError(401,'Invalid device') if error?
 
     securityImpl.canConfigure fromDevice, gotDevice, (error, permission) =>
       return callback "unauthorized" unless permission
 
       device = new Device uuid: uuid
       device.resetToken (error, token) =>
-        return callback "error updating device" if error?
+        return callback hyGaError(401,'error updating device') if error?
         emitToClient 'notReady', fromDevice, {}
         debug 'token',token
         return callback null, token
