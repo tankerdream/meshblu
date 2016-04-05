@@ -99,6 +99,7 @@ class Device
       @_clearTokenCache()
       callback null, newToken
 
+# 撤销其它设备访问时设置的token
   revokeToken: (token, callback=_.noop)=>
     @fetch (error, attributes) =>
       return callback error if error?

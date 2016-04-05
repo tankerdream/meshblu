@@ -2,6 +2,8 @@ _             = require 'lodash'
 debug         = require('debug')('meshblu:s_register')
 logEvent      = require './logEvent'
 
+hyGaError     = require('./models/hyGaError');
+
 module.exports = (s_channel={},device={}, callback=_.noop, dependencies={}) =>
 
 # 通过`node-uuid`或`dependencies.uuid`产生的唯一的uuid
@@ -12,7 +14,7 @@ module.exports = (s_channel={},device={}, callback=_.noop, dependencies={}) =>
 
   debug 's_channel uuid', uuid
 
-  return callback Error('Invalid channel'),null unless uuid? && token?
+  return callback hyGaErrorError(400, 'Invalid channel'),null unless uuid? && token?
 
   s_database = dependencies.s_database ? require('./s_database')
   s_authS_Channel = dependencies.s_authS_Channel ? require('./s_authS_Channel')
@@ -22,7 +24,7 @@ module.exports = (s_channel={},device={}, callback=_.noop, dependencies={}) =>
 
   s_authS_Channel uuid, token, (error, s_channel) =>
     return callback error,null if error?
-    return callback Error('No permission to add device'),null unless s_channel?
+    return callback hyGaError(401, 'No permission to add device'),null unless s_channel?
 
     device = _.cloneDeep device
     device.owner = uuid
@@ -35,11 +37,9 @@ module.exports = (s_channel={},device={}, callback=_.noop, dependencies={}) =>
 
       debug 'updating device to s_channels',newDevice
       return callback error,null if error?
-      return callback Error('Register failure'),null unless newDevice
+      return callback hyGaError(500, 'Register failure'),null unless newDevice
 
       s_channels.update {"uuid":s_channel.uuid},{$addToSet:{"devices":newDevice.uuid}},(err,data)->
         if err
-          callback
-            'message':'update device to channel failed'
-            'code':500
+          callback hyGaError(500,'update device to channel failed')
         callback null,newDevice
