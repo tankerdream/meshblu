@@ -2,6 +2,7 @@ _  = require 'lodash'
 debug = require('debug')('meshblu:oldUpdateDevice')
 Device = require './models/device'
 
+#更新设备参数
 module.exports = (uuid, params={}, callback=_.noop, dependencies={})->
   device = new Device uuid: uuid, dependencies
 
