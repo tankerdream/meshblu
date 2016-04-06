@@ -27,3 +27,6 @@ doc
 FileWatcher
 
 test-forwarded-for.sh
+# dev files
+.*-dev
+*.dockerfile-dev

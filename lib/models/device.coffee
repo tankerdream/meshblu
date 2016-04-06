@@ -24,7 +24,13 @@ class Device
     @set attributes
     {@uuid} = attributes
 
-# 根据ip地址添加设备的物理地址
+  fatalIfNoPrimary: (error) =>
+    return unless error?
+    return unless /ECONNREFUSED/.test(error.message) || /no primary server available/.test(error.message)
+    console.error 'FATAL: database error', error
+    process.exit 1
+
+  # 根据ip地址添加设备的物理地址
   addGeo: (callback=->) =>
     return _.defer callback unless @attributes.ipAddress?
 
@@ -68,6 +74,7 @@ class Device
           return callback null, device
 
         @devices.findOne uuid: uuid, {_id: false}, (error, device) =>
+          @fatalIfNoPrimary error
           @fetch.cache = device
           return callback error if error?
           return callback new Error('Device not founds') unless device?
@@ -241,6 +248,7 @@ class Device
       debug 'update', uuid, params
 #    将设备存入devices所在的mongodb数据库
       @devices.update uuid: uuid, params, (error, result) =>
+        @fatalIfNoPrimary error
         return callback @sanitizeError(error) if error?
 #    若配置redis，则将设备原来的信息从redis缓存中清除
         @clearCache uuid, =>
@@ -267,6 +275,7 @@ class Device
       return callback error if error?
       debug '_hashDevice', uuid
       @devices.findOne uuid: uuid, (error, data) =>
+        @fatalIfNoPrimary error
         return callback error if error?
         delete data.meshblu.hash if data?.meshblu?.hash
         @_hashToken JSON.stringify(data), (error, hashedToken) =>
@@ -274,7 +283,9 @@ class Device
           params = $set :
             'meshblu.hash': hashedToken
           debug 'updating hash', uuid, params
-          @devices.update uuid: uuid, params, callback
+          @devices.update uuid: uuid, params, (error) =>
+            @fatalIfNoPrimary error
+            callback arguments...
 
   _hashToken: (token, callback) =>
     @_lookupAlias @uuid, (error, uuid) =>
@@ -291,6 +302,7 @@ class Device
 # 若设备配置成功,则向设备发送配置信息
   _sendConfig: (options, callback) =>
     {forwardedFor} = options
+    
     @fetch (error, config) =>
       delete config.token
       return callback error if error?
