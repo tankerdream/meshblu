@@ -30,3 +30,4 @@ module.exports = (uuid, params={}, callback=_.noop, dependencies={})->
     debug 'save',error
     return callback error if error?
     device.fetch callback
+
