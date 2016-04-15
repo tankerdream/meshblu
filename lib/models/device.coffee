@@ -8,6 +8,8 @@ Publisher = require '../Publisher'
 
 publisher = new Publisher namespace: 'meshblu'
 
+hyGaError = require './hyGaError'
+
 class Device
   constructor: (attributes={}, dependencies={}) ->
     @devices = dependencies.database?.devices ? require('../database').devices
@@ -77,7 +79,7 @@ class Device
           @fatalIfNoPrimary error
           @fetch.cache = device
           return callback error if error?
-          return callback new Error('Device not founds') unless device?
+          return callback new hyGaError(404,'Device not founds') unless device?
           @cacheDevice device
           callback null, @fetch.cache
 
@@ -206,7 +208,7 @@ class Device
 
 # 最后验证不通过,则将token存入黑名单中
   verifyToken: (token, callback=->) =>
-    return callback "{code:401,{error:'No token provided'}}" unless token?
+    return callback hyGaError(401,'No token provided') unless token?
 
     @_isTokenInBlacklist token, (error, blacklisted) =>
       return callback error if error?
@@ -352,5 +354,16 @@ class Device
     @devices.update {'uuid':@uuid}, {$pullAll:{"#{listName}":list}},(error)->
       return callback error if error?
       return callback null
+
+#返回一小部分设备信息
+#  hyga_fetch: (callback=->) =>
+#    @fetch (error,device) =>
+#      return callback error if error?
+#      hyga_device = {
+#        uuid: device.uuid
+#        ipAddress: device.ipAddress
+#        geo: device.geo
+#      }
+#      return callback null,hyga_device
 
 module.exports = Device
