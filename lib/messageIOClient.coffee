@@ -28,14 +28,14 @@ class MessageIOClient extends EventEmitter2
       @subscriber.subscribe type, uuid, done
     , callback
 
-  subBroadcast: (fromDeivce, uuids, callback =  _.noop) =>
-    uuids = fromDevice.owner unless uuids
+  subBroadcast: (fromDevice, uuids, callback =  _.noop) =>
+    uuids = fromDevice.owner unless uuids?
     uuids = [ uuids ] if typeof uuids == 'string'
 
     async.each uuids, (uuid, done) =>
       getDevice uuid,(error,check)=>
         return callback error if error?
-        s_securityImpl.canDiscover fromDeivce, check, (error, permission)=>
+        s_securityImpl.canDiscover fromDevice, check, (error, permission)=>
 
           debug 'subBroadcast error', error
           return callback error if error?
@@ -45,8 +45,8 @@ class MessageIOClient extends EventEmitter2
           @subscriber.subscribe 'broadcast', uuid, done
     , callback
 
-  unsubBroadcast: (fromDeivce, uuids, callback = _.noop) =>
-    uuids = fromDevice.owner unless uuids
+  unsubBroadcast: (fromDevice, uuids, callback = _.noop) =>
+    uuids = fromDevice.owner unless uuids?
     uuids = [ uuids ] if typeof uuids == 'string'
 
     async.each uuids, (uuid, done) =>
