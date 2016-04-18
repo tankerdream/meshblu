@@ -29,6 +29,8 @@ class MessageIOClient extends EventEmitter2
     , callback
 
   subBroadcast: (fromDeivce, uuids, callback =  _.noop) =>
+    uuids = fromDevice.owner unless uuids
+    uuids = [ uuids ] if typeof uuids == 'string'
 
     async.each uuids, (uuid, done) =>
       getDevice uuid,(error,check)=>
@@ -41,6 +43,14 @@ class MessageIOClient extends EventEmitter2
           debug 'subBroadcast permission', permission
           return callback hyGaError(401,'No permission', {uuid:uuid}) unless permission
           @subscriber.subscribe 'broadcast', uuid, done
+    , callback
+
+  unsubBroadcast: (fromDeivce, uuids, callback = _.noop) =>
+    uuids = fromDevice.owner unless uuids
+    uuids = [ uuids ] if typeof uuids == 'string'
+
+    async.each uuids, (uuid, done) =>
+      @subscriber.unsubscribe 'broadcast', uuid, done
     , callback
 
   unsubscribe: (uuid, subscriptionTypes, callback) =>
