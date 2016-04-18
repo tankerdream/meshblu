@@ -294,6 +294,7 @@ class SimpleAuth
       else
         defaultAuth = @_s_isSameOwner fromDevice,toDevice
 
+    debug 'defaultAuth', defaultAuth
     return defaultAuth
 
 module.exports = SimpleAuth
