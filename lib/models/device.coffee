@@ -169,8 +169,7 @@ class Device
         tokenData = createdAt: new Date()
         tokenData.tag = tag if tag?
         @_storeTokenInCache hashedToken
-        @update $set: {"meshblu.tokens.#{hashedToken}" : tokenData}, callback
-
+        @update $set: {"hyga.tokens.#{hashedToken}" : tokenData}, callback
 
 #  判断修改后的uuid与当前的uuid是否一致
   validate: (callback) =>
@@ -228,7 +227,6 @@ class Device
 
             @_storeInvalidTokenInBlacklist token
             return callback null, false
-
 
 # 将设备信息存入mongodb
   update: (params, rest...) =>

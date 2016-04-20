@@ -18,7 +18,7 @@ resetToken  = (fromDevice, uuid, emitToClient, callback=(->), {securityImpl, get
 
       device = new Device uuid: uuid
       device.resetToken (error, token) =>
-        return callback hyGaError(401,'error updating device') if error?
+        return callback hyGaError(401,'Error updating device') if error?
         emitToClient 'notReady', fromDevice, {}
         debug 'token',token
         return callback null, token

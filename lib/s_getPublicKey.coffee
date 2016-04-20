@@ -8,7 +8,7 @@ _getKey = (device,callback) ->
   return callback hyGaError(404,'No publicKey'), null unless device?.publicKey
 
   debug 'device', device
-  name = device?.name || 'publicKey'
+  name = device.publicName || 'publicKey'
   publicKey = device?.publicKey
   callback null, {"#{name}": publicKey}
 
