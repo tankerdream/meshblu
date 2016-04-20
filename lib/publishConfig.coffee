@@ -5,6 +5,9 @@ SimpleAuth = require './simpleAuth'
 
 PUBLISHER = new Publisher {namespace: 'meshblu'}
 
+debug = require('debug')('PublishConfig')
+#TODO 设备更改后的通知
+
 #设备属性更改后,将新的属性发送给设备
 class PublishConfig
   constructor: ({@uuid,@config,@database,@forwardedFor},{@publisher}={}) ->
