@@ -75,30 +75,14 @@ class SimpleAuth
             callback null, openByDefault
 
 #    判断源设备是否可以配置目标设备
-  canConfigure: (fromDevice, toDevice, message, callback) =>
-    if _.isFunction message
-      callback = message
-      message = null
+  canConfigure: (fromDevice, toDevice, callback) =>
 
     return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+    return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
 
     @_checkLists fromDevice, toDevice, toDevice.configureWhitelist, toDevice.configureBlacklist, false, (error, inList) =>
       return callback error if error?
       return callback null, true if inList
-
-      return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid
-
-      return @asyncCallback(null, true, callback) if toDevice.owner == fromDevice.uuid if toDevice.owner?
-
-      if message?.token
-        return @authDevice(
-          toDevice.uuid
-          message.token
-          (error, result) =>
-            return @asyncCallback(error, false, callback) if error?
-            return @asyncCallback(null, result?, callback)
-        )
-
       @asyncCallback(null, false, callback)
 
   canConfigureAs: (fromDevice, toDevice, message, callback) =>

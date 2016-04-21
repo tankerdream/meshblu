@@ -2,22 +2,24 @@ config = require('./../config')
 messageIOEmitter = require('./createMessageIOEmitter')()
 devices = require('./database').devices
 whoAmI = require('./whoAmI')
-securityImpl = require('./getSecurityImpl')
+s_securityImpl = require('./s_getSecurityImpl')
 
-module.exports = (fromDevice, unregisterUuid, unregisterToken, emitToClient, callback=->) ->
+clearCache = require './clearCache'
+hyGaError = require('./models/hyGaError');
+
+module.exports = (fromDevice, unregisterUuid, emitToClient, callback=->) ->
   if !fromDevice or !unregisterUuid
-    return callback('invalid from or to device')
+    return callback hyGaError(400,'Invalid from or to device')
 
   whoAmI unregisterUuid, true, (toDevice) ->
     if toDevice.error
-      return callback('invalid device to unregister')
+      return callback hyGaError(404,'Invalid device to unregister')
 
-    securityImpl.canConfigure fromDevice, toDevice, { token: unregisterToken }, (error, permission) ->
+    s_securityImpl.canConfigure fromDevice, toDevice, (error, permission) ->
       if !permission or error
-        return callback(
-          message: 'unauthorized'
-          code: 401)
+        return callback hyGaError(401,'Unauthorized')
 
+#        TODO 谁订阅了这些消息?
       if emitToClient
         emitToClient 'unregistered', toDevice, toDevice
       else
@@ -26,8 +28,7 @@ module.exports = (fromDevice, unregisterUuid, unregisterToken, emitToClient, cal
 #     从mongodb删除设备
       devices.remove { uuid: unregisterUuid }, (err, devicedata) ->
         if err or devicedata == 0
-          callback
-            'message': 'Device not found or token not valid'
-            'code': 404
-          return
-        callback null, uuid: unregisterUuid
+          return callback hyGaError(404,'Device not found or token not valid')
+        clearCache unregisterUuid, =>
+          callback null, uuid: unregisterUuid
+
