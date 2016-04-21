@@ -17,15 +17,18 @@ getToken = (ownerDevice, message, callback=_.noop, dependencies={}) =>
       return callback new hyGaError(401,'Unauthorized') unless permission
 
       device = new Device {uuid}
-      token = device.generateToken()
+#      token = device.generateToken()
 
-      storeTokenOptions = {token}
+#      storeTokenOptions = {token}
 #      TODO tag的作用?
-      storeTokenOptions.tag = tag if tag?
-      debug 'before store'
-      device.storeToken storeTokenOptions, (error) =>
+#      storeTokenOptions.tag = tag if tag?
+#      debug 'before store'
+
+      device.generateAndStoreTokenInCache (error, token) =>
         return callback error if error?
-        storeTokenOptions.uuid = uuid
-        callback null, storeTokenOptions
+        callback null, {
+          uuid: uuid
+          token: token
+        }
 
 module.exports = getToken

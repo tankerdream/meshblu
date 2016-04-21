@@ -84,7 +84,9 @@ class Device
     token = @generateToken()
     @_hashToken token, (error, hashedToken) =>
       return callback error if error?
-      @_storeTokenInCache hashedToken, (error) =>
+
+      debug 'generateAndStoreTokenInCache', hashedToken
+      @_storeSessionTokenInCache hashedToken, (error) =>
         return callback error if error?
         callback null, token
 
@@ -292,17 +294,25 @@ class Device
 #  将设备的token和uuid的键值对保存在redis中
   _storeTokenInCache: (hashedToken, callback=->) =>
     return callback null, false unless @redis?.set?
-    @redis.set "meshblu-token-cache:#{@uuid}:#{hashedToken}", '', callback
+    @redis.set "t:#{@uuid}:#{hashedToken}", '', callback
+
+#  存储临时的token,保存时间为10分钟
+  _storeSessionTokenInCache: (hashedToken, callback=->) =>
+    return callback null, false unless @redis?.set?
+    @redis.set "10m:#{@uuid}:#{hashedToken}", '', (err)=>
+      callback err if err?
+      @redis.expire "10m:#{@uuid}:#{hashedToken}", 600, callback
 
 #    将最后验证失败的token放入黑名单,加快后续请求的验证速度
   _storeInvalidTokenInBlacklist: (token, callback=->) =>
     return callback null, false unless @redis?.set?
     @redis.set "meshblu-token-black-list:#{@uuid}:#{token}", '', callback
 
+
 #    判断redis中是否有设备的指定token
   _verifyTokenInCache: (hashedToken, callback=->) =>
     return callback null, false unless @redis?.exists?
-    @redis.exists "meshblu-token-cache:#{@uuid}:#{hashedToken}", callback
+    @redis.exists "60s:#{@uuid}:#{hashedToken}", callback
 
 #    判断token是否在设备的token黑名单中
   _isTokenInBlacklist: (token, callback=->) =>
