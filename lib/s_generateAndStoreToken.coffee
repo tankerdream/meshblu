@@ -1,5 +1,6 @@
 _ = require 'lodash'
 
+debug = require('debug')('hyga:getToken')
 hyGaError = require './models/hyGaError'
 
 getToken = (ownerDevice, message, callback=_.noop, dependencies={}) =>
@@ -12,7 +13,7 @@ getToken = (ownerDevice, message, callback=_.noop, dependencies={}) =>
   getDevice uuid, (error, targetDevice) =>
     return callback error if error?
 
-    s_securityImpl.canConfigure ownerDevice, targetDevice, (error, permission) =>
+    s_securityImpl.canConfigure ownerDevice, targetDevice, null, (error, permission) =>
       return callback new hyGaError(401,'Unauthorized') unless permission
 
       device = new Device {uuid}
@@ -21,6 +22,7 @@ getToken = (ownerDevice, message, callback=_.noop, dependencies={}) =>
       storeTokenOptions = {token}
 #      TODO tag的作用?
       storeTokenOptions.tag = tag if tag?
+      debug 'before store'
       device.storeToken storeTokenOptions, (error) =>
         return callback error if error?
         storeTokenOptions.uuid = uuid

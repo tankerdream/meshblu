@@ -75,7 +75,7 @@ class SimpleAuth
             callback null, openByDefault
 
 #    判断源设备是否可以配置目标设备
-  canConfigure: (fromDevice, toDevice, callback) =>
+  canConfigure: (fromDevice, toDevice, message, callback) =>
 
     return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
     return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
@@ -83,32 +83,15 @@ class SimpleAuth
     @_checkLists fromDevice, toDevice, toDevice.configureWhitelist, toDevice.configureBlacklist, false, (error, inList) =>
       return callback error if error?
       return callback null, true if inList
+      if message?.token && (message.listName != 'configureWhitelist') && (message.listName != 'configureBlacklist')
+        return @authDevice(
+          toDevice.uuid
+          message.token
+          (error, result) =>
+            return @asyncCallback(error, false, callback) if error?
+            return @asyncCallback(null, result?, callback)
+        )
       @asyncCallback(null, false, callback)
-
-  canConfigureAs: (fromDevice, toDevice, message, callback) =>
-    if _.isFunction message
-      callback = message
-      message = null
-
-    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
-
-    if message?.token
-      return @authDevice(
-        toDevice.uuid
-        message.token
-        (error, result) =>
-          return @asyncCallback(error, false, callback) if error?
-          return @asyncCallback(null, result?, callback)
-      )
-
-    configureAsWhitelist = _.cloneDeep toDevice.configureAsWhitelist
-    unless configureAsWhitelist
-      configureAsWhitelist = []
-      configureAsWhitelist.push toDevice.owner if toDevice.owner
-
-    @_checkLists fromDevice, toDevice, configureAsWhitelist, toDevice.configureAsBlacklist, true, (error, inList) =>
-      return callback error if error?
-      callback null, inList
 
   canDiscover: (fromDevice, toDevice, message, callback) =>
     if _.isFunction message
@@ -138,31 +121,6 @@ class SimpleAuth
         return callback error callback error if error?
         callback null, inList
 
-  canDiscoverAs: (fromDevice, toDevice, message, callback) =>
-    if _.isFunction message
-      callback = message
-      message = null
-
-    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
-
-    if message?.token
-      return @authDevice(
-        toDevice.uuid
-        message.token
-        (error, result) =>
-          return @asyncCallback(error, false, callback) if error?
-          return @asyncCallback(null, result?, callback)
-      )
-
-    discoverAsWhitelist = _.cloneDeep toDevice.discoverAsWhitelist
-    unless discoverAsWhitelist
-      discoverAsWhitelist = []
-      discoverAsWhitelist.push toDevice.owner if toDevice.owner
-
-    @_checkLists fromDevice, toDevice, discoverAsWhitelist, toDevice.discoverAsBlacklist, true, (error, inList) =>
-      return callback error if error?
-      callback null, inList
-
 #一般设备只能接收目的设备的广播消息
   canReceive: (fromDevice, toDevice, message, callback) =>
 #    间接实现多参数
@@ -182,32 +140,6 @@ class SimpleAuth
       )
 
     @_checkLists fromDevice, toDevice, toDevice.receiveWhitelist, toDevice.receiveBlacklist, true, (error, inList) =>
-      return callback error if error?
-      callback null, inList
-
-#  其它设备是否可以代替目的设备接收目的设备的sent,receive等信息
-  canReceiveAs: (fromDevice, toDevice, message, callback) =>
-    if _.isFunction message
-      callback = message
-      message = null
-
-    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
-
-    if message?.token
-      return @authDevice(
-        toDevice.uuid
-        message.token
-        (error, result) =>
-          return @asyncCallback(error, false, callback) if error?
-          return @asyncCallback(null, result?, callback)
-      )
-
-    receiveAsWhitelist = _.cloneDeep toDevice.receiveAsWhitelist
-    unless receiveAsWhitelist
-      receiveAsWhitelist = []
-      receiveAsWhitelist.push toDevice.owner if toDevice.owner
-
-    @_checkLists fromDevice, toDevice, receiveAsWhitelist, toDevice.receiveAsBlacklist, true, (error, inList) =>
       return callback error if error?
       callback null, inList
 
@@ -231,31 +163,6 @@ class SimpleAuth
 
     @_s_checkLists fromDevice, toDevice, toDevice.sendWhitelist, toDevice.sendBlacklist, defaultAuth, (error, inList) =>
       return callback error callback error if error?
-      callback null, inList
-
-  canSendAs: (fromDevice, toDevice, message, callback) =>
-    if _.isFunction message
-      callback = message
-      message = null
-
-    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
-
-    if message?.token
-      return @authDevice(
-        toDevice.uuid
-        message.token
-        (error, result) =>
-          return @asyncCallback(error, false, callback) if error?
-          return @asyncCallback(null, result?, callback)
-      )
-
-    sendAsWhitelist = _.cloneDeep toDevice.sendAsWhitelist
-    unless sendAsWhitelist
-      sendAsWhitelist = []
-      sendAsWhitelist.push toDevice.owner if toDevice.owner
-
-    @_checkLists fromDevice, toDevice, sendAsWhitelist, toDevice.sendAsBlacklist, true, (error, inList) =>
-      return callback error if error?
       callback null, inList
 
   _resolveList: (list, callback) =>
