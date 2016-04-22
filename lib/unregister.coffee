@@ -1,11 +1,14 @@
 config = require('./../config')
 messageIOEmitter = require('./createMessageIOEmitter')()
-devices = require('./database').devices
+database = require('./database')
 whoAmI = require('./whoAmI')
 s_securityImpl = require('./s_getSecurityImpl')
 
 clearCache = require './clearCache'
 hyGaError = require('./models/hyGaError');
+
+devices = database.devices
+rmdevices = database.rmdevices
 
 module.exports = (fromDevice, unregisterUuid, emitToClient, callback=->) ->
   if !fromDevice or !unregisterUuid
@@ -15,7 +18,7 @@ module.exports = (fromDevice, unregisterUuid, emitToClient, callback=->) ->
     if toDevice.error
       return callback hyGaError(404,'Invalid device to unregister')
 
-    s_securityImpl.canConfigure fromDevice, toDevice, (error, permission) ->
+    s_securityImpl.canConfigure fromDevice, toDevice, null, (error, permission) ->
       if !permission or error
         return callback hyGaError(401,'Unauthorized')
 
@@ -29,6 +32,7 @@ module.exports = (fromDevice, unregisterUuid, emitToClient, callback=->) ->
       devices.remove { uuid: unregisterUuid }, (err, devicedata) ->
         if err or devicedata == 0
           return callback hyGaError(404,'Device not found or token not valid')
-        clearCache unregisterUuid, =>
-          callback null, uuid: unregisterUuid
+        rmdevices.insert toDevice, ->
+          clearCache unregisterUuid, =>
+            callback null, uuid: unregisterUuid
 
