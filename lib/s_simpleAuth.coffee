@@ -11,6 +11,7 @@ class SimpleAuth
   constructor: (@dependencies={}) ->
     {aliasServerUri, @authDevice} = @dependencies
     @authDevice ?= require './authDevice'
+    @authSessionToken ?= require './authSessionToken'
     @uuidAliasResolver = new UUIDAliasResolver {}, {@redis, aliasServerUri}
 
   asyncCallback: (error, result, callback) =>
@@ -94,7 +95,7 @@ class SimpleAuth
       return callback error if error?
       return callback null, true if inList
       if message?.token && (message.listName != 'configureList')
-        return @authDevice(
+        return @authSessionToken(
           toDevice.uuid
           message.token
           (error, result) =>
@@ -115,7 +116,7 @@ class SimpleAuth
       return callback null, true if inList
 
       if message?.token
-        return @authDevice(
+        return @authSessionToken(
           toDevice.uuid
           message.token
           (error, result) =>
@@ -145,7 +146,7 @@ class SimpleAuth
       return callback null, true if inList
 
       if token?
-        return @authDevice(
+        return @authSessionToken(
           toDevice.uuid
           token
           (error, result) =>

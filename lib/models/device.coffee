@@ -188,13 +188,11 @@ class Device
         callback null, verified
 
 #  验证其它设备产生的临时token
-  verifySessionToken: (hashedToken, callback=->) =>
-    @fetch (error, attributes) =>
+  verifySessionToken: (token, callback=->) =>
+    return callback null, false unless @redis?.exists?
+    @_hashToken token, (error, hashedToken) =>
       return callback error if error?
-
-      verified = attributes?.hyga?.tokens?[hashedToken]?
-      @_storeTokenInCache hashedToken if verified
-      callback null, verified
+      @redis.exists "10m:#{@uuid}:#{hashedToken}", callback
 
 # 最后验证不通过,则将token存入黑名单中
   verifyToken: (token, callback=->) =>
@@ -294,7 +292,7 @@ class Device
 #  将设备的token和uuid的键值对保存在redis中
   _storeTokenInCache: (hashedToken, callback=->) =>
     return callback null, false unless @redis?.set?
-    @redis.set "t:#{@uuid}:#{hashedToken}", '', callback
+    @redis.set "r:#{@uuid}:#{hashedToken}", '', callback
 
 #  存储临时的token,保存时间为10分钟
   _storeSessionTokenInCache: (hashedToken, callback=->) =>
@@ -312,7 +310,7 @@ class Device
 #    判断redis中是否有设备的指定token
   _verifyTokenInCache: (hashedToken, callback=->) =>
     return callback null, false unless @redis?.exists?
-    @redis.exists "60s:#{@uuid}:#{hashedToken}", callback
+    @redis.exists "r:#{@uuid}:#{hashedToken}", callback
 
 #    判断token是否在设备的token黑名单中
   _isTokenInBlacklist: (token, callback=->) =>
