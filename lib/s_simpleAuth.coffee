@@ -75,15 +75,25 @@ class SimpleAuth
             callback null, openByDefault
 
 #    判断源设备是否可以配置目标设备
-  canConfigure: (fromDevice, toDevice, message, callback) =>
+  canConfigure: (fromDevice, toDevice, callback) =>
 
     return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
     return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
 
-    @_checkLists fromDevice, toDevice, toDevice.configureWhitelist, toDevice.configureBlacklist, false, (error, inList) =>
+    @_checkLists fromDevice, toDevice, toDevice.configureList, null, false, (error, inList) =>
       return callback error if error?
       return callback null, true if inList
-      if message?.token && (message.listName != 'configureWhitelist') && (message.listName != 'configureBlacklist')
+      @asyncCallback(null, false, callback)
+
+  canConfigureList: (fromDevice, toDevice, message, callback) =>
+
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+    return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
+
+    @_checkLists fromDevice, toDevice, toDevice.configureList, null, false, (error, inList) =>
+      return callback error if error?
+      return callback null, true if inList
+      if message?.token && (message.listName != 'configureList')
         return @authDevice(
           toDevice.uuid
           message.token
@@ -121,49 +131,28 @@ class SimpleAuth
         return callback error callback error if error?
         callback null, inList
 
-#一般设备只能接收目的设备的广播消息
-  canReceive: (fromDevice, toDevice, message, callback) =>
-#    间接实现多参数
+  canSend: (fromDevice, toDevice, token, callback) =>
     if _.isFunction message
       callback = message
       message = null
 
     return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
-
-    if message?.token
-      return @authDevice(
-        toDevice.uuid
-        message.token
-        (error, result) =>
-          return @asyncCallback(error, false, callback) if error?
-          return @asyncCallback(null, result?, callback)
-      )
-
-    @_checkLists fromDevice, toDevice, toDevice.receiveWhitelist, toDevice.receiveBlacklist, true, (error, inList) =>
-      return callback error if error?
-      callback null, inList
-
-  canSend: (fromDevice, toDevice, message, callback) =>
-    if _.isFunction message
-      callback = message
-      message = null
-
-    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
-
-    if message?.token
-      return @authDevice(
-        toDevice.uuid
-        message.token
-        (error, result) =>
-          return @asyncCallback(error, false, callback) if error?
-          return @asyncCallback(null, result?, callback)
-      )
 
     defaultAuth = @_check_authority(fromDevice,toDevice)
 
     @_s_checkLists fromDevice, toDevice, toDevice.sendWhitelist, toDevice.sendBlacklist, defaultAuth, (error, inList) =>
       return callback error callback error if error?
-      callback null, inList
+      return callback null, true if inList
+
+      if token?
+        return @authDevice(
+          toDevice.uuid
+          token
+          (error, result) =>
+            return @asyncCallback(error, false, callback) if error?
+            return @asyncCallback(null, result?, callback)
+        )
+      @asyncCallback(null, false, callback)
 
   _resolveList: (list, callback) =>
     return callback null, list unless _.isArray list

@@ -13,7 +13,7 @@ getToken = (ownerDevice, message, callback=_.noop, dependencies={}) =>
   getDevice uuid, (error, targetDevice) =>
     return callback error if error?
 
-    s_securityImpl.canConfigure ownerDevice, targetDevice, null, (error, permission) =>
+    s_securityImpl.canConfigure ownerDevice, targetDevice, (error, permission) =>
       return callback new hyGaError(401,'Unauthorized') unless permission
 
       device = new Device {uuid}

@@ -43,7 +43,9 @@ class MessageIOClient extends EventEmitter2
           debug 'subBroadcast permission', permission
           return callback hyGaError(401,'No permission', {uuid:uuid}) unless permission
           @subscriber.subscribe 'broadcast', uuid, done
-    , callback
+    , (err)->
+        retrun callback hyGaError(500, err) if err
+        callback null
 
   unsubBroadcast: (fromDevice, uuids, callback = _.noop) =>
     uuids = fromDevice.owner unless uuids?
@@ -51,7 +53,9 @@ class MessageIOClient extends EventEmitter2
 
     async.each uuids, (uuid, done) =>
       @subscriber.unsubscribe 'broadcast', uuid, done
-    , callback
+    , (err)->
+        retrun callback hyGaError(500, err) if err
+        callback null
 
   unsubscribe: (uuid, subscriptionTypes, callback) =>
     subscriptionTypes ?= MessageIOClient.DEFAULT_UNSUBSCRIPTION_TYPES
