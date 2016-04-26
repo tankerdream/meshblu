@@ -1,12 +1,12 @@
 _ = require 'lodash'
 
 updateIfAuthorized = (fromDevice, query, params, options, callback, dependencies={}) ->
-  securityImpl = dependencies.securityImpl ? require('./getSecurityImpl')
+  s_securityImpl = dependencies.securityImpl ? require('./s_getSecurityImpl')
   Device = dependencies.Device ? require('./models/device')
 
   device = new Device uuid: query.uuid
   device.fetch (error, toDevice) =>
-    securityImpl.canConfigure fromDevice, toDevice, query, (error, permission) =>
+    s_securityImpl.canConfigure fromDevice, toDevice, (error, permission) =>
       return callback error if error?
       return callback new Error('Device does not have sufficient permissions for update') unless permission
 

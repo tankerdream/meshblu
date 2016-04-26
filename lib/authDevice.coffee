@@ -16,4 +16,5 @@ module.exports = (uuid, token, callback=(->), dependencies={}) ->
     device.fetch (error, attributes) =>
       debug('fetch', error.stack) if error?
       return callback error if error?
+      delete attributes.token
       callback null, attributes

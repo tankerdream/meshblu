@@ -1,6 +1,6 @@
 _ = require 'lodash'
 config = require '../config'
-debug = require('debug')('meshblu:meshblu-websocket-handler')
+debug = require('debug')('meshblu:websocket-handler')
 {EventEmitter} = require 'events'
 uuid = require 'node-uuid'
 
