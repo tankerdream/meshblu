@@ -18,7 +18,7 @@ module.exports = (fromDevice, unregisterUuid, emitToClient, callback=->) ->
     if toDevice.error
       return callback hyGaError(404,'Invalid device to unregister')
 
-    s_securityImpl.canConfigure fromDevice, toDevice, null, (error, permission) ->
+    s_securityImpl.canConfigure fromDevice, toDevice, (error, permission) ->
       if !permission or error
         return callback hyGaError(401,'Unauthorized')
 
