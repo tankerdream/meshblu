@@ -1,16 +1,16 @@
 _      = require 'lodash'
 async  = require 'async'
 bcrypt = require 'bcrypt'
-debug  = require('debug')('meshblu:authS_Channel')
+debug  = require('debug')('hyga:authS_Channel')
 
-module.exports = (uuid, token, callback=(->), dependencies={}) ->
+module.exports = (uuid, dmToken, callback=(->), dependencies={}) ->
 
   debug 'uuid', uuid
-  debug 'token',token
+  debug 'token', dmToken
 
   S_Channel = dependencies.S_Channel ? require './models/s_channel'
   s_channel = new S_Channel {uuid: uuid}, {config: dependencies.config}
-  s_channel.verifyToken token, (error, verified) =>
+  s_channel.verifyToken 'dm', dmToken, (error, verified) =>
     debug 'verified',verified
     debug('verifyS_ChannelToken', error.stack) if error?
 

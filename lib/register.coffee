@@ -25,8 +25,6 @@ module.exports = (device={}, callback=_.noop, dependencies={}) ->
     return callback new Error('Device not registered') if error?
 #    insert操作只是将device的uuid和online加入devices表中
     device.token ?= generateToken()
-    device.discoverWhitelist ?= [device.owner] if device.owner
-    device.configureWhitelist ?= [device.owner] if device.owner
 
 #    将device中的其他参数加入到devices表中
     debug 'about to update device', device

@@ -243,10 +243,7 @@ class Device
 #    若配置redis，则将设备原来的信息从redis缓存中清除
       @clearCache @uuid, =>
         @fetch.cache = null
-        @_hashDevice (hashDeviceError) =>
-          @_sendConfig options, (sendConfigError) =>
-            return callback @sanitizeError(hashDeviceError) if hashDeviceError?
-            callback sendConfigError
+        callback null, true
 
 # 清除缓存中uuid和token的键值对
   _clearTokenCache: (callback=->) =>
@@ -327,16 +324,5 @@ class Device
     @devices.update {'uuid':@uuid}, {$pullAll:{"#{listName}":list}},(error)->
       return callback error if error?
       return callback null
-
-#返回一小部分设备信息
-#  hyga_fetch: (callback=->) =>
-#    @fetch (error,device) =>
-#      return callback error if error?
-#      hyga_device = {
-#        uuid: device.uuid
-#        ipAddress: device.ipAddress
-#        geo: device.geo
-#      }
-#      return callback null,hyga_device
 
 module.exports = Device

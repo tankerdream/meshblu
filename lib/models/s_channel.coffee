@@ -2,7 +2,7 @@ _      = require 'lodash'
 async  = require 'async'
 bcrypt = require 'bcrypt'
 crypto = require 'crypto'
-debug  = require('debug')('show:model:s_channel')
+debug  = require('debug')('hyga:model:s_channel')
 
 class S_Channel
   constructor: (attributes={}, dependencies={}) ->
@@ -20,29 +20,20 @@ class S_Channel
     @attributes = _.extend {}, @attributes, @sanitize(attributes)
     @attributes.online = !!@attributes.online if @attributes.online?
 
-# 验证密码
-  verifyToken: (token, callback=->) =>
-    return callback new Error('No password provided') unless token?
-    @_verifyTokenInCache token, (error, verified) =>
-      return callback error if error?
-      return callback null, true if verified
-
-      @verifyRootToken token, (error, verified) =>
-        return callback error if error?
-        return callback null, true if verified
-        return callback null, false
-
 # 根据uuid查找设备,若redis不存在device,则从mongoDB中找到device并将其缓存入redis中
   fetch: (callback=->) =>
     return _.defer callback, null, @fetch.cache if @fetch.cache?
 
     @findCachedS_Channel @uuid, (error, s_channel) =>
       return callback error if error?
+
       if s_channel?
         @fetch.cache = s_channel
         return callback null, s_channel
 
       @s_channels.findOne uuid: @uuid, {_id: false}, (error,s_channel) =>
+        debug 'findOne channel', error, s_channel
+
         @fetch.cache = s_channel
         return callback new Error('Channel not found') unless s_channel?
         @cacheS_Channel s_channel
@@ -78,18 +69,60 @@ class S_Channel
       if s_channel
         @redis.setex @redis.CACHE_KEY + s_channel.uuid, @redis.CACHE_TIMEOUT, JSON.stringify(s_channel), _.noop
 
+# 注册设备是验证的token
+  verifyToken: (tokenPrefix, token, callback=->) =>
+    return callback hyGaError(400,"No #{tokenPrefix}Token provided") unless token?
+
+    @_hashToken token, (error, hashedToken) =>
+      return callback error if error?
+      debug 'hashed token', hashedToken
+
+      @_verifyTokenInCache tokenPrefix, hashedToken, (error, verified) =>
+
+        debug 'verify tokenInCache', error, verified
+        return callback error if error?
+        return callback null, true if verified
+
+        @verifyRootToken tokenPrefix, token, hashedToken, (error, verified) =>
+
+          debug 'verify tokenInRoot', error, verified
+          return callback error if error?
+          return callback null, true if verified
+          return callback null, false
+
 #    验证根mongodb中的token
-  verifyRootToken: (ogToken, callback=->) =>
+  verifyRootToken: (tokenPrefix, ogToken, hashedToken, callback=->) =>
     debug "verifyRootToken: ", ogToken
 
     @fetch (error, attributes={}) =>
+      debug "attribute type: ", typeof attributes
+      debug "attribute type: ", attributes
       return callback error, false if error?
-      return callback null, false unless attributes.token?
-      callback null,(ogToken == attributes.token)
+      return callback null, false unless attributes["#{tokenPrefix}Token"]?
 
+      bcrypt.compare ogToken, attributes["#{tokenPrefix}Token"], (error, verified) =>
+        return callback error if error?
+        debug "verifyRootToken: bcrypt.compare results: #{error}, #{verified}"
+        @_storeTokenInCache  tokenPrefix, hashedToken if verified
+        callback null, verified
+
+  _hashToken: (token, callback) =>
+
+    hasher = crypto.createHash 'sha256'
+    hasher.update token
+    hasher.update @uuid
+    hasher.update @config.token
+
+    callback null, hasher.digest 'base64'
 #    判断redis中是否有设备的token
-  _verifyTokenInCache: (token, callback=->) =>
-    return callback null, false unless @redis?.sismember?
-    @redis.sismember "token:#{@uuid}", token, callback
+  _verifyTokenInCache: (tokenPrefix, hashedToken, callback=->) =>
+    return callback null, false unless @redis?.exists?
+    @redis.exists "#{tokenPrefix}:#{@uuid}:#{hashedToken}", callback
+
+#  将dmToken键值对保存在redis中
+  _storeTokenInCache: (tokenPrefix, hashedToken, callback=->) =>
+    return callback null, false unless @redis?.set?
+    @redis.set "#{tokenPrefix}:#{@uuid}:#{hashedToken}", '', callback
+
 
 module.exports = S_Channel
