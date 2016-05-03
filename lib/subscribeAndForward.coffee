@@ -7,6 +7,8 @@ MessageIOClient = require './messageIOClient'
 securityImpl = require './getSecurityImpl'
 debug = require('debug')('meshblu:subscribeAndForward')
 
+s_securityImpl = require './s_getSecurityImpl'
+
 subscribeAndForwardWithToken = (response, uuid, token, requestedSubscriptionTypes, payloadOnly, topics) ->
   authDevice uuid, token, (error, authedDevice) ->
     messageIOClient = connectMessageIO(response, payloadOnly)
@@ -37,30 +39,21 @@ subscribeAndForward = (askingDevice, response, uuid, token, requestedSubscriptio
   getDevice uuid, (error, subscribedDevice) ->
     if error
       return response.json(error: 'unauthorized')
-    securityImpl.canReceive askingDevice, subscribedDevice, (error, permission) ->
-      if error
-        return response.json(error: 'unauthorized')
-      if !permission && subscribedDevice.owner != askingDevice.uuid
-        return response.json(error: 'unauthorized')
+    s_securityImpl.canSend askingDevice, subscribedDevice, null, (error, permission) ->
 
-      authorizedSubscriptionTypes = []
-      authorizedSubscriptionTypes.push 'broadcast'
+      return response.json(error: 'unauthorized') if error
 
-      securityImpl.canReceiveAs askingDevice, subscribedDevice, (error, permission) ->
-        if error
-          return response.json(error: 'unauthorized')
+      return response.json(error: 'unauthorized') if !permission
 
-        if permission
-          authorizedSubscriptionTypes.push 'broadcast'
-          authorizedSubscriptionTypes.push 'received'
-          authorizedSubscriptionTypes.push 'sent'
-          authorizedSubscriptionTypes.push 'config'
-          authorizedSubscriptionTypes.push 'data'
 
-        requestedSubscriptionTypes ?= authorizedSubscriptionTypes
-        requestedSubscriptionTypes = _.union requestedSubscriptionTypes, ['config', 'data']
-        subscriptionTypes = _.intersection requestedSubscriptionTypes, authorizedSubscriptionTypes
-        messageIOClient = connectMessageIO(response, payloadOnly)
-        messageIOClient.subscribe uuid, subscriptionTypes, topics
+      authorizedSubscriptionTypes = ['received', 'config', 'data']
+
+#        requestedSubscriptionTypes ?= authorizedSubscriptionTypes
+#        requestedSubscriptionTypes = _.union requestedSubscriptionTypes, ['config', 'data']
+
+#        subscriptionTypes = _.intersection requestedSubscriptionTypes, authorizedSubscriptionTypes
+
+      messageIOClient = connectMessageIO(response, payloadOnly)
+      messageIOClient.subscribe uuid, authorizedSubscriptionTypes, topics
 
 module.exports = subscribeAndForward

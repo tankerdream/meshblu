@@ -8,6 +8,7 @@ hyGaError = require('./models/hyGaError');
 module.exports = (uuid, token, callback=(->), dependencies={}) ->
   Device = dependencies.Device ? require './models/device'
   return callback hyGaError(401,'No uuid'), null unless uuid?
+  
   device = new Device {uuid: uuid}, {config: dependencies.config}
   device.verifyToken token, (error, verified) =>
     debug('verifyToken', error.stack) if error?

@@ -76,7 +76,7 @@ class Device
         @fatalIfNoPrimary error
         @fetch.cache = device
         return callback error if error?
-        return callback new hyGaError(404,'Device not founds') unless device?
+        return callback hyGaError(404,'Device not founds') unless device?
         @cacheDevice device
         callback null, @fetch.cache
 
