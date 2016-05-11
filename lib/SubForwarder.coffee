@@ -33,7 +33,7 @@ connectBroadcastIO = (response) ->
   msgIOClient = new MessageIOClient()
 
   msgIOClient.on 'broadcast', (message) ->
-    debug 'onMessage', type, message
+    debug 'onMessage', 'broadcast', message
 
     respData = {}
     respData.t = 'brd'
@@ -50,9 +50,9 @@ connectBroadcastIO = (response) ->
 
 class SubForwarder
 
-  subBroadcast : (askingDevice, response, uuid) ->
+  subBroadcast : (askingDevice, response, uuids) ->
     messageIOClient = connectBroadcastIO(response)
-    messageIOClient.subBroadcast askingDevice, uuid
+    messageIOClient.subBroadcast askingDevice, uuids
 
 
   subscribe : (askingDevice, response, uuid) ->
