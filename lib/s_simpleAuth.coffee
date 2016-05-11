@@ -94,10 +94,10 @@ class SimpleAuth
     @_checkLists fromDevice, toDevice, toDevice.configureList, null, false, (error, inList) =>
       return callback error if error?
       return callback null, true if inList
-      if message?.token && (message.listName != 'configureList')
+      if message?.sesToken && (message.listName != 'configureList')
         return @authSessionToken(
           toDevice.uuid
-          message.token
+          message.sesToken
           (error, result) =>
             return @asyncCallback(error, false, callback) if error?
             return @asyncCallback(null, result?, callback)

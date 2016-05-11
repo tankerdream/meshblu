@@ -72,7 +72,7 @@ class Device
         @fetch.cache = device
         return callback null, device
 
-      @devices.findOne uuid: @uuid, {_id: false}, (error, device) =>
+      @devices.findOne uuid: @uuid, {_id: false, token: false}, (error, device) =>
         @fatalIfNoPrimary error
         @fetch.cache = device
         return callback error if error?
@@ -192,7 +192,7 @@ class Device
     return callback null, false unless @redis?.exists?
     @_hashToken token, (error, hashedToken) =>
       return callback error if error?
-      @redis.exists "10m:#{@uuid}:#{hashedToken}", callback
+      @redis.exists "ses:#{@uuid}:#{hashedToken}", callback
 
 # 最后验证不通过,则将token存入黑名单中
   verifyToken: (token, callback=->) =>
@@ -294,9 +294,9 @@ class Device
 #  存储临时的token,保存时间为10分钟
   _storeSessionTokenInCache: (hashedToken, callback=->) =>
     return callback null, false unless @redis?.set?
-    @redis.set "10m:#{@uuid}:#{hashedToken}", '', (err)=>
+    @redis.set "ses:#{@uuid}:#{hashedToken}", '', (err)=>
       callback err if err?
-      @redis.expire "10m:#{@uuid}:#{hashedToken}", 600, callback
+      @redis.expire "ses:#{@uuid}:#{hashedToken}", 600, callback
 
 #    将最后验证失败的token放入黑名单,加快后续请求的验证速度
   _storeInvalidTokenInBlacklist: (token, callback=->) =>
@@ -315,14 +315,17 @@ class Device
     @redis.exists "meshblu-token-black-list:#{@uuid}:#{token}", callback
 
   pushList: (listName,list,callback=->) =>
-    @devices.update {'uuid':@uuid}, {$addToSet:{"#{listName}":{$each:list}}},(error)->
+    @devices.update {'uuid':@uuid}, {$addToSet:{"#{listName}":{$each:list}}},(error)=>
       return callback error if error?
-#      TODO 清理redis,config通知
-      return callback null
+      @clearCache @uuid, =>
+        @fetch.cache = null
+        callback null, true
 
   pullList: (listName,list,callback=->) =>
-    @devices.update {'uuid':@uuid}, {$pullAll:{"#{listName}":list}},(error)->
+    @devices.update {'uuid':@uuid}, {$pullAll:{"#{listName}":list}},(error)=>
       return callback error if error?
-      return callback null
+      @clearCache @uuid, =>
+        @fetch.cache = null
+        callback null, true
 
 module.exports = Device

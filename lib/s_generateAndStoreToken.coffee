@@ -28,7 +28,7 @@ getToken = (ownerDevice, message, callback=_.noop, dependencies={}) =>
         return callback error if error?
         callback null, {
           uuid: uuid
-          token: token
+          sesToken: token
         }
 
 module.exports = getToken

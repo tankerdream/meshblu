@@ -4,17 +4,20 @@ logEvent      = require './logEvent'
 
 hyGaError     = require('./models/hyGaError');
 
-module.exports = (s_channelUuid, params={}, callback=_.noop, dependencies={}) =>
+module.exports = (params={}, callback=_.noop, dependencies={}) =>
 
 # 通过`node-uuid`或`dependencies.uuid`产生的唯一的uuid
 # 存储设备等相关信息，若配置`mongodb`，则存储在相应`url`的数据库中；若没有配置，则通过`nedb`存储在文件中。
 
+  s_channelUuid = params.channelUuid
   regToken = params.regToken
+
+  return callback hyGaError(400, 'Invalid channel'),null unless s_channelUuid? && regToken?
+
+  delete params.channelUuid
   delete params.regToken
 
   debug 's_channel uuid', s_channelUuid
-
-  return callback hyGaError(400, 'Invalid channel'),null unless s_channelUuid? && regToken?
 
   s_database = dependencies.s_database ? require('./s_database')
   s_authS_Channel = dependencies.s_authS_Channel ? require('./s_authS_Channel')
