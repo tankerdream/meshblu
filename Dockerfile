@@ -1,5 +1,5 @@
 FROM node:0.10.40
-MAINTAINER Octoblu, Inc. <docker@octoblu.com>
+MAINTAINER hyga
 
 EXPOSE 80
 EXPOSE 1883
