@@ -4,7 +4,6 @@
   "version": "1.18.3",
   "author": "Octoblu, Inc.",
   "dependencies": {
-    "@octoblu/redis-ns": "^0.1.1",
     "JSONStream": "~0.9.0",
     "async": "^0.9.0",
     "bcrypt": "^0.8.1",
@@ -55,10 +54,6 @@
     "hiredis": "^0.4.1",
     "mdns": "^2.2.0"
   },
-  "subdomain": "skynet",
-  "domains": [
-    "skynet.im"
-  ],
   "scripts": {
     "start": "node ${NODE_FLAGS} server.js --http --mqtt --coap",
     "integration-test": "./run-integration-tests.sh",

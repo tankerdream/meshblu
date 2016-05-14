@@ -1,5 +1,5 @@
 FROM node:0.10.40
-MAINTAINER hyga
+MAINTAINER tankerdream
 
 EXPOSE 80
 EXPOSE 1883
