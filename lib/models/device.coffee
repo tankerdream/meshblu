@@ -181,6 +181,7 @@ class Device
     @fetch (error, attributes={}) =>
       return callback error, false if error?
       return callback null, false unless attributes.token?
+      debug "verifyRootToken attributes.token ", attributes.token
       bcrypt.compare ogToken, attributes.token, (error, verified) =>
         return callback error if error?
         debug "verifyRootToken: bcrypt.compare results: #{error}, #{verified}"
@@ -204,6 +205,8 @@ class Device
 
       @_hashToken token, (error, hashedToken) =>
         return callback error if error?
+
+        debug 'hashedToken', hashedToken
 
         @_verifyTokenInCache hashedToken, (error, verified) =>
           return callback error if error?
