@@ -48,10 +48,11 @@ class Device
       return callback error if error?
       return callback null, null if device.token == token
 
-      bcrypt.hash token, 8, (error, hashedToken) =>
-        @attributes.token = hashedToken if hashedToken?
-        @_storeTokenInCache hashedToken if hashedToken?
-        callback error
+      @_hashToken token, (error, hashedToken) =>
+        return callback error if error?
+        @attributes.token = hashedToken
+        @_storeTokenInCache hashedToken
+        callback null, true
 
   addOnlineSince: (callback=->) =>
     @fetch (error, device) =>
@@ -72,7 +73,7 @@ class Device
         @fetch.cache = device
         return callback null, device
 
-      @devices.findOne uuid: @uuid, {_id: false, token: false}, (error, device) =>
+      @devices.findOne uuid: @uuid, {_id: false}, (error, device) =>
         @fatalIfNoPrimary error
         @fetch.cache = device
         return callback error if error?
@@ -176,17 +177,18 @@ class Device
 
 # 验证根token的hash
   verifyRootToken: (ogToken, hashedToken, callback=->) =>
-    debug "verifyRootToken: ", ogToken
+    debug "verifyRootToken: ", hashedToken
 
     @fetch (error, attributes={}) =>
+
+      debug "verifyRootToken attributes.token ", attributes.token
       return callback error, false if error?
       return callback null, false unless attributes.token?
-      debug "verifyRootToken attributes.token ", attributes.token
-      bcrypt.compare ogToken, attributes.token, (error, verified) =>
-        return callback error if error?
-        debug "verifyRootToken: bcrypt.compare results: #{error}, #{verified}"
-        @_storeTokenInCache hashedToken if verified
-        callback null, verified
+
+      verified = (hashedToken == attributes.token)
+      debug "verifyRootToken: bcrypt.compare results: #{verified}"
+      @_storeTokenInCache hashedToken if verified
+      callback null, verified
 
 #  验证其它设备产生的临时token
   verifySessionToken: (token, callback=->) =>
