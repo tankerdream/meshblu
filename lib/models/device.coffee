@@ -2,7 +2,7 @@ _      = require 'lodash'
 async  = require 'async'
 bcrypt = require 'bcrypt'
 crypto = require 'crypto'
-debug  = require('debug')('meshblu:model:device')
+debug  = require('debug')('hyga:model:device')
 UUIDAliasResolver = require '../../src/uuid-alias-resolver'
 Publisher = require '../Publisher'
 
@@ -46,6 +46,9 @@ class Device
 
     @fetch (error, device) =>
       return callback error if error?
+      
+      debug 'token', token
+      debug 'device.token', device.token
       return callback null, null if device.token == token
 
       @_hashToken token, (error, hashedToken) =>
@@ -202,6 +205,7 @@ class Device
     return callback hyGaError(401,'No token provided') unless token?
 
     @_isTokenInBlacklist token, (error, blacklisted) =>
+      debug 'blacklist in ', blacklisted
       return callback error if error?
       return callback null, false if blacklisted
 

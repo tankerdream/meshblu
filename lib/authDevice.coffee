@@ -13,7 +13,7 @@ module.exports = (uuid, token, callback=(->), dependencies={}) ->
   device.verifyToken token, (error, verified) =>
     debug('verifyToken', error.stack) if error?
     return callback error if error?
-    return callback hyGaError(401,'Unable to find valid device') unless verified
+    return callback hyGaError(401,'Device not found') unless verified
     device.fetch (error, attributes) =>
       debug('fetch', error.stack) if error?
       return callback error if error?

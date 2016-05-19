@@ -78,9 +78,12 @@ class SimpleAuth
 #    判断源设备是否可以配置目标设备
   canConfigure: (fromDevice, toDevice, callback) =>
 
+    debug 'canconfigure'
     return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+    debug 'canconfigure before owner'
     return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
-
+    debug 'canconfigure after owner'
+    debug 'toDevice.configureList', toDevice.configureList
     @_checkLists fromDevice, toDevice, toDevice.configureList, null, false, (error, inList) =>
       return callback error if error?
       return callback null, true if inList
