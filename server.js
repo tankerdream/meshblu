@@ -46,11 +46,11 @@ program.mqtt        = program.mqtt || false;
 program.parent      = program.parent || false;
 
 console.log("");
-console.log("  SSS   HH   HH    OOOO    WW   WW    WW   WW");
-console.log("SS      HH   HH  OOO  OOO   WW   WW  WW   WW ");
-console.log("  SSS   HHHHHHH OOO    OOO   WW   WWWW   WW");
-console.log("     SS HH   HH  OOO  OOO     WW   WW  WW ");
-console.log("  SSS   HH   HH    OOOO        WWWW  WWW");
+console.log("HH   HH    OOOO    WW   WW    WW   WW");
+console.log("HH   HH  OOO  OOO   WW   WW  WW   WW ");
+console.log("HHHHHHH OOO    OOO   WW   WWWW   WW");
+console.log("HH   HH  OOO  OOO     WW   WW  WW ");
+console.log("HH   HH    OOOO        WWWW  WWW");
 console.log("                                         ");
 console.log('\Meshblu (formerly skynet.im) %s environment loaded... ', program.environment);
 console.log("");
