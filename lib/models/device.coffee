@@ -280,7 +280,7 @@ class Device
     hasher = crypto.createHash 'sha256'
     hasher.update token
     hasher.update @uuid
-    hasher.update @config.token
+#    hasher.update @config.token
 
     callback null, hasher.digest 'base64'
 
