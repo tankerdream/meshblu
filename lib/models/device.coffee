@@ -51,11 +51,16 @@ class Device
       debug 'device.token', device.token
       return callback null, null if device.token == token
 
-      @_hashToken token, (error, hashedToken) =>
-        return callback error if error?
-        @attributes.token = hashedToken
-        @_storeTokenInCache hashedToken
-        callback null, true
+#      @_hashToken token, (error, hashedToken) =>
+#        return callback error if error?
+#        @attributes.token = hashedToken
+#        @_storeTokenInCache hashedToken
+#        callback null, true
+
+      bcrypt.hash token, 8, (error, hashedToken) =>
+        @attributes.token = hashedToken if hashedToken?
+        @_storeTokenInCache hashedToken if hashedToken?
+        callback error
 
   addOnlineSince: (callback=->) =>
     @fetch (error, device) =>
@@ -179,8 +184,7 @@ class Device
     callback null, true
 
 # 验证根token的hash
-  verifyRootToken: (ogToken, hashedToken, callback=->) =>
-    debug "verifyRootToken: ", hashedToken
+  verifyRootToken: (ogToken,callback=->) =>
 
     @fetch (error, attributes={}) =>
 
@@ -188,10 +192,17 @@ class Device
       return callback error, false if error?
       return callback null, false unless attributes.token?
 
-      verified = (hashedToken == attributes.token)
-      debug "verifyRootToken: bcrypt.compare results: #{verified}"
-      @_storeTokenInCache hashedToken if verified
-      callback null, verified
+      bcrypt.compare ogToken, attributes.token, (error, verified) =>
+        return callback error if error?
+        debug "verifyRootToken: bcrypt.compare results: #{error}, #{verified}"
+        @_hashToken ogToken, (error, hashedToken) =>
+          return callback error if error?
+          @_storeTokenInCache hashedToken if verified
+          callback null, verified
+
+#      verified = (hashedToken == attributes.token)
+#      @_storeTokenInCache hashedToken if verified
+#      callback null, verified
 
 #  验证其它设备产生的临时token
   verifySessionToken: (token, callback=->) =>
@@ -222,7 +233,7 @@ class Device
             return callback error if error?
             return callback null, true if verified
 
-            @verifyRootToken token, hashedToken, (error, verified) =>
+            @verifyRootToken token, (error, verified) =>
               return callback error if error?
               return callback null, true if verified
 
@@ -275,12 +286,13 @@ class Device
           @fatalIfNoPrimary error
           callback arguments...
 
+# 每个机器临时产生的token
   _hashToken: (token, callback) =>
 
     hasher = crypto.createHash 'sha256'
     hasher.update token
     hasher.update @uuid
-#    hasher.update @config.token
+    hasher.update @config.token
 
     callback null, hasher.digest 'base64'
 
