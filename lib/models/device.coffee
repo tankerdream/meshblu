@@ -50,13 +50,7 @@ class Device
       debug 'token', token
       debug 'device.token', device.token
       return callback null, null if device.token == token
-
-#      @_hashToken token, (error, hashedToken) =>
-#        return callback error if error?
-#        @attributes.token = hashedToken
-#        @_storeTokenInCache hashedToken
-#        callback null, true
-
+#       与_hashedToken之处在于不会随着机器的不同而值不同,这是root token与其他token的根本区别,所以验证和加密的方法跟其他的不同
       bcrypt.hash token, 8, (error, hashedToken) =>
         @attributes.token = hashedToken if hashedToken?
         @_storeTokenInCache hashedToken if hashedToken?
@@ -199,10 +193,6 @@ class Device
           return callback error if error?
           @_storeTokenInCache hashedToken if verified
           callback null, verified
-
-#      verified = (hashedToken == attributes.token)
-#      @_storeTokenInCache hashedToken if verified
-#      callback null, verified
 
 #  验证其它设备产生的临时token
   verifySessionToken: (token, callback=->) =>
