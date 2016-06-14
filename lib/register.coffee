@@ -15,20 +15,18 @@ module.exports = (device={}, callback=_.noop, dependencies={}) ->
   device = _.cloneDeep device
 
   newDevice =
-    uuid: uuid.v4()
-    online: false
+    _id: uuid.v4()
 
   debug "registering", device
 
   devices.insert newDevice, (error) =>
-    debug 'inserted', error
     return callback new Error('Device not registered') if error?
 #    insert操作只是将device的uuid和online加入devices表中
     device.token ?= generateToken()
 
 #    将device中的其他参数加入到devices表中
     debug 'about to update device', device
-    oldUpdateDevice newDevice.uuid, device, (error, savedDevice) =>
+    oldUpdateDevice newDevice._id, device, (error, savedDevice) =>
       debug 'oldUpdateDevice', error
       return callback new Error('Device not updated') if error?
       debug 'updated', error

@@ -22,8 +22,10 @@ class Device
     @cacheDevice = dependencies.cacheDevice ? require '../cacheDevice'
     aliasServerUri = @config.aliasServer?.uri
     @PublishConfig = require '../publishConfig'
-    @set attributes
     {@uuid} = attributes
+    delete attributes.uuid
+    @set attributes
+
 
   fatalIfNoPrimary: (error) =>
     return unless error?
@@ -75,8 +77,10 @@ class Device
         @fetch.cache = device
         return callback null, device
 
-      @devices.findOne uuid: @uuid, {_id: false}, (error, device) =>
+      @devices.findOne _id: @uuid, (error, device) =>
         @fatalIfNoPrimary error
+        device.uuid = device._id
+        delete device._id
         @fetch.cache = device
         return callback error if error?
         return callback hyGaError(404,'Device not founds') unless device?
@@ -136,7 +140,7 @@ class Device
 
 # 注册设备，保存设备
   save: (callback=->) =>
-    debug 'save','save'
+    debug 'save', @attributes
     @validate (error, isValid) =>
       return callback error unless isValid
 
@@ -152,7 +156,7 @@ class Device
 #  设置设备的参数
   set: (attributes)=>
     @attributes ?= {}
-    @attributes = _.extend {}, @attributes, @sanitize(attributes)
+    @attributes = _.extend @attributes, @sanitize(attributes)
     debug 'set attributes', @attributes
     @attributes.online = !!@attributes.online if @attributes.online?
 
@@ -236,18 +240,18 @@ class Device
     [options, callback] = rest if _.isPlainObject(rest[0])
     options ?= {}
 
-    params = _.cloneDeep params
-    keys   = _.keys(params)
+#    params = _.cloneDeep params
+#    keys   = _.keys(params)
 
-    if _.all(keys, (key) -> _.startsWith key, '$')
-      params['$set'] ?= {}
-      params['$set'].uuid = @uuid
-    else
-      params.uuid = @uuid
+#    if _.all(keys, (key) -> _.startsWith key, '$')
+#      params['$set'] ?= {}
+#      params['$set']._id = @uuid
+#    else
+#      params._id = @uuid
 
     debug 'update', @uuid, params
 #    将设备存入devices所在的mongodb数据库
-    @devices.update uuid: @uuid, params, (error, result) =>
+    @devices.update _id: @uuid, params, (error, result) =>
       @fatalIfNoPrimary error
       return callback @sanitizeError(error) if error?
 #    若配置redis，则将设备原来的信息从redis缓存中清除
