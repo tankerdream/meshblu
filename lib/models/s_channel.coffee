@@ -11,8 +11,9 @@ class S_Channel
     @clearCache = dependencies.clearCache ? require '../clearCache'
     @config = dependencies.config ? require '../../config'
     @redis = dependencies.redis ? require '../redis'
+    @uuid = attributes.uuid
+    delete attributes.uuid
     @set attributes
-    {@uuid} = attributes
 
 #  设置用户的参数
   set: (attributes)=>
@@ -31,9 +32,10 @@ class S_Channel
         @fetch.cache = s_channel
         return callback null, s_channel
 
-      @s_channels.findOne uuid: @uuid, {_id: false}, (error,s_channel) =>
+      @s_channels.findOne _id: @uuid, {_id: false}, (error,s_channel) =>
         debug 'findOne channel', error, s_channel
-
+        s_channel.uuid = s_channel._id
+        delete s_channel._id
         @fetch.cache = s_channel
         return callback new Error('Channel not found') unless s_channel?
         @cacheS_Channel s_channel

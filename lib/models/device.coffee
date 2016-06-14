@@ -22,7 +22,7 @@ class Device
     @cacheDevice = dependencies.cacheDevice ? require '../cacheDevice'
     aliasServerUri = @config.aliasServer?.uri
     @PublishConfig = require '../publishConfig'
-    {@uuid} = attributes
+    @uuid = attributes.uuid
     delete attributes.uuid
     @set attributes
 
@@ -76,9 +76,10 @@ class Device
       if device?
         @fetch.cache = device
         return callback null, device
-
+      debug 'fetch uuid', @uuid
       @devices.findOne _id: @uuid, (error, device) =>
         @fatalIfNoPrimary error
+        debug 'findOne device', device
         device.uuid = device._id
         delete device._id
         @fetch.cache = device
