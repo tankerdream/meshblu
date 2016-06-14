@@ -107,44 +107,35 @@ class SimpleAuth
         )
       @asyncCallback(null, false, callback)
 
-  canDiscover: (fromDevice, toDevice, message, callback) =>
-    if _.isFunction message
-      callback = message
-      message = null
-
-    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
-
-    @_checkLists fromDevice, toDevice, toDevice.discoverWhitelist, toDevice.discoverBlacklist, true, (error, inList) =>
-      return callback error if error?
-      return callback null, true if inList
-
-      if message?.token
-        return @authSessionToken(
-          toDevice.uuid
-          message.token
-          (error, result) =>
-            return @asyncCallback(error, false, callback) if error?
-            return @asyncCallback(null, result?, callback)
-        )
-
-      defaultAuth = @_check_authority(fromDevice,toDevice)
-
-      debug 'canDiscover defaultAuth', defaultAuth
-
-      @_s_checkLists fromDevice, toDevice, toDevice.sendWhitelist, toDevice.sendBlacklist, defaultAuth, (error, inList) =>
-        return callback error callback error if error?
-        callback null, inList
-
-  canSend: (fromDevice, toDevice, token, callback) =>
-    if _.isFunction message
-      callback = message
-      message = null
+  canDiscover: (fromDevice, toDevice, sesToken, callback) =>
 
     return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
 
     defaultAuth = @_check_authority(fromDevice,toDevice)
 
-    @_s_checkLists fromDevice, toDevice, toDevice.sendWhitelist, toDevice.sendBlacklist, defaultAuth, (error, inList) =>
+    debug 'canDiscover defaultAuth', defaultAuth
+
+    @_s_checkLists fromDevice, toDevice, toDevice.whitelist, toDevice.blacklist, defaultAuth, (error, inList) =>
+      return callback error callback error if error?
+      return callback null, inList
+
+      if sesToken?
+        return @authSessionToken(
+          toDevice.uuid
+          sesToken
+          (error, result) =>
+            return @asyncCallback(error, false, callback) if error?
+            return @asyncCallback(null, result?, callback)
+        )
+      @asyncCallback(null, false, callback)
+
+  canSend: (fromDevice, toDevice, token, callback) =>
+
+    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+
+    defaultAuth = @_check_authority(fromDevice,toDevice)
+
+    @_s_checkLists fromDevice, toDevice, toDevice.whitelist, toDevice.blacklist, defaultAuth, (error, inList) =>
       return callback error callback error if error?
       return callback null, true if inList
 
@@ -163,7 +154,8 @@ class SimpleAuth
     async.map list, @uuidAliasResolver.resolve, callback
 
   _s_isSameOwner: (fromDevice,toDevice) =>
-    return false if !fromDevice.owner || !toDevice.owner
+    debug 'fromDevice owner', fromDevice.owner
+    debug 'toDevice owner', toDevice.owner
     return fromDevice.owner == toDevice.owner
 
   _check_authority: (fromDevice,toDevice) =>

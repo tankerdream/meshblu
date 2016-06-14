@@ -1,4 +1,4 @@
-saveDataIfAuthorized = require '../../lib/s_saveDataIfAuthorized'
+saveDataIfAuthorized = require '../../lib/saveKey'
 _ = require 'lodash'
 
 describe 's_saveDataIfAuthorized', ->
