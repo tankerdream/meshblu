@@ -34,10 +34,13 @@ class S_Channel
 
       @s_channels.findOne _id: @uuid, {_id: false}, (error,s_channel) =>
         debug 'findOne channel', error, s_channel
+
+        return callback new Error('Channel not found') unless s_channel?
+        
         s_channel.uuid = s_channel._id
         delete s_channel._id
         @fetch.cache = s_channel
-        return callback new Error('Channel not found') unless s_channel?
+
         @cacheS_Channel s_channel
         callback null, @fetch.cache
 

@@ -79,12 +79,14 @@ class Device
       debug 'fetch uuid', @uuid
       @devices.findOne _id: @uuid, (error, device) =>
         @fatalIfNoPrimary error
+        return callback hyGaError(404,'Device not founds') unless device?
+
         debug 'findOne device', device
         device.uuid = device._id
         delete device._id
+
         @fetch.cache = device
         return callback error if error?
-        return callback hyGaError(404,'Device not founds') unless device?
         @cacheDevice device
         callback null, @fetch.cache
 
@@ -187,9 +189,9 @@ class Device
 
     @fetch (error, attributes={}) =>
 
+      debug 'verifyRootToken error',  error
       debug "verifyRootToken attributes.token ", attributes.token
       return callback error, false if error?
-      return callback null, false unless attributes.token?
 
       bcrypt.compare ogToken, attributes.token, (error, verified) =>
         return callback error if error?
@@ -331,14 +333,14 @@ class Device
     @redis.exists "meshblu-token-black-list:#{@uuid}:#{token}", callback
 
   pushList: (listName,list,callback=->) =>
-    @devices.update {'uuid':@uuid}, {$addToSet:{"#{listName}":{$each:list}}},(error)=>
+    @devices.update {'_id':@uuid}, {$addToSet:{"#{listName}":{$each:list}}},(error)=>
       return callback error if error?
       @clearCache @uuid, =>
         @fetch.cache = null
         callback null, true
 
   pullList: (listName,list,callback=->) =>
-    @devices.update {'uuid':@uuid}, {$pullAll:{"#{listName}":list}},(error)=>
+    @devices.update {'_id':@uuid}, {$pullAll:{"#{listName}":list}},(error)=>
       return callback error if error?
       @clearCache @uuid, =>
         @fetch.cache = null

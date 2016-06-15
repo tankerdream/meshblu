@@ -1,7 +1,6 @@
 _      = require 'lodash'
-async  = require 'async'
 bcrypt = require 'bcrypt'
-debug  = require('debug')('meshblu:authDevice')
+debug  = require('debug')('hyga:authDevice')
 
 hyGaError = require('./models/hyGaError');
 
@@ -10,10 +9,13 @@ module.exports = (uuid, token, callback=(->), dependencies={}) ->
   return callback hyGaError(401,'No uuid') unless uuid? & token?
 
   device = new Device {uuid: uuid}, {config: dependencies.config}
+
   device.verifyToken token, (error, verified) =>
-    debug('verifyToken', error.stack) if error?
+
+    debug 'verifyToken', error
     return callback error if error?
     return callback hyGaError(401,'Device not found') unless verified
+
     device.fetch (error, attributes) =>
       debug('fetch', error.stack) if error?
       return callback error if error?

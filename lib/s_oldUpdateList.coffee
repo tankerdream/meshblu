@@ -2,14 +2,17 @@ _  = require 'lodash'
 debug = require('debug')('meshblu:oldUpdateDevice')
 Device = require './models/device'
 
-module.exports = (uuid, data, callback=_.noop, dependencies={})->
-  device = new Device uuid: uuid, dependencies
+pushList = (uuid, data, callback=_.noop)->
+  device = new Device uuid: uuid
+  device.pushList data.listName, data.list,(error)=>
+      return callback error if error?
+      callback null
 
-  if data.api == 'push'
-    device.pushList data.listName, data.list,(error)=>
+pullList = (uuid, data, callback=_.noop)->
+  device = new Device uuid: uuid
+  device.pullList data.listName, data.list,(error)=>
       return callback error if error?
-      device.fetch callback
-  else
-    device.pullList data.listName, data.list,(error)=>
-      return callback error if error?
-      device.fetch callback
+      callback null
+
+module.exports.pushList = pushList()
+module.exports.pullList = pullList()
