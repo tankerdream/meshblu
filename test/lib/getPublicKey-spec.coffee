@@ -1,6 +1,6 @@
 describe 'getPublicKey', ->
   beforeEach ->
-    @sut = require '../../lib/s_getPublicKey'
+    @sut = require '../../lib/s_getKey'
 
   describe 'when called with (almost) nothing', ->
     beforeEach (done) ->
