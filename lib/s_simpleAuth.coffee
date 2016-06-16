@@ -3,6 +3,8 @@ bcrypt = require "bcrypt"
 _ = require "lodash"
 UUIDAliasResolver = require '../src/uuid-alias-resolver'
 
+Device = require './models/device'
+hyGaError = require './models/hyGaError'
 debug = require("debug")("hyga:s_simpleAuth")
 
 #设备各种属性的检测
@@ -89,23 +91,13 @@ class SimpleAuth
       return callback null, true if inList
       @asyncCallback(null, false, callback)
 
-  canConfigureList: (fromDevice, toDevice, message, callback) =>
+  canConfigureList: (fromDevice, toDevice, sesToken, callback) =>
 
-    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
-    return @asyncCallback(null, true, callback) if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
+    return callback null, true, true if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
 
-    @_checkLists fromDevice, toDevice, toDevice.configureList, null, false, (error, inList) =>
-      return callback error if error?
-      return callback null, true if inList
-      if message?.sesToken && (message.listName != 'configureList')
-        return @authSessionToken(
-          toDevice.uuid
-          message.sesToken
-          (error, result) =>
-            return @asyncCallback(error, false, callback) if error?
-            return @asyncCallback(null, result?, callback)
-        )
-      @asyncCallback(null, false, callback)
+    return callback hyGaError(400,'Require sesToken') unless sesToken?
+    @_authSesToken toDevice.uuid, sesToken, (error, verified) ->
+      return callback error, verified
 
   canDiscover: (fromDevice, toDevice, sesToken, callback) =>
 
@@ -148,6 +140,12 @@ class SimpleAuth
             return @asyncCallback(null, result?, callback)
         )
       @asyncCallback(null, false, callback)
+
+  _authSesToken: (uuid, sesToken, callback) =>
+
+    device = new Device {uuid: uuid}
+    device.verifySessionToken sesToken, (error, verified) =>
+      return callback error, verified
 
   _resolveList: (list, callback) =>
     return callback null, list unless _.isArray list

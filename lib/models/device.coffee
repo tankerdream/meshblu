@@ -206,7 +206,10 @@ class Device
     return callback null, false unless @redis?.exists?
     @_hashToken token, (error, hashedToken) =>
       return callback error if error?
-      @redis.exists "ses:#{@uuid}:#{hashedToken}", callback
+      @redis.exists "ses:#{@uuid}:#{hashedToken}", (error, verified) ->
+
+        return callback null, true if verified
+        callback hyGaError(401,'Invalid sesToken')
 
 # 最后验证不通过,则将token存入黑名单中
   verifyToken: (token, callback=->) =>
@@ -226,16 +229,12 @@ class Device
           return callback error if error?
           return callback null, true if verified
 
-          @verifySessionToken token, (error, verified) =>
+          @verifyRootToken token, (error, verified) =>
             return callback error if error?
             return callback null, true if verified
 
-            @verifyRootToken token, (error, verified) =>
-              return callback error if error?
-              return callback null, true if verified
-
-              @_storeInvalidTokenInBlacklist token
-              return callback null, false
+            @_storeInvalidTokenInBlacklist token
+            return callback null, false
 
 # 将设备信息存入mongodb
   update: (params, rest...) =>
