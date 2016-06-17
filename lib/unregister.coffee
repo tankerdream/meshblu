@@ -1,38 +1,32 @@
 config = require('./../config')
-messageIOEmitter = require('./createMessageIOEmitter')()
 database = require('./database')
-whoAmI = require('./whoAmI')
 s_securityImpl = require('./s_getSecurityImpl')
 
+getDevice = require './getDevice'
 clearCache = require './clearCache'
-hyGaError = require('./models/hyGaError');
+hyGaError = require './models/hyGaError'
 
 devices = database.devices
 rmdevices = database.rmdevices
 
-module.exports = (fromDevice, unregisterUuid, emitToClient, callback=->) ->
-  if !fromDevice or !unregisterUuid
+module.exports = (fromDevice, toDeviceUuid, emitToClient, callback=->) ->
+  if !fromDevice or !toDeviceUuid
     return callback hyGaError(400,'Invalid from or to device')
 
-  whoAmI unregisterUuid, true, (toDevice) ->
-    if toDevice.error
-      return callback hyGaError(404,'Invalid device to unregister')
+  getDevice toDeviceUuid, (error, toDevice) ->
 
-    s_securityImpl.canConfigure fromDevice, toDevice, (error, permission) ->
-      if !permission or error
-        return callback hyGaError(401,'Unauthorized')
+    return callback(error) if error?
 
-#        TODO 谁订阅了这些消息?
-      if emitToClient
-        emitToClient 'unregistered', toDevice, toDevice
-      else
-        messageIOEmitter toDevice.uuid, 'unregistered', toDevice
+    s_securityImpl.canConfigure fromDevice, toDevice, null, (error, permission) ->
+      if error or !permission
+        return callback error
 
 #     从mongodb删除设备
-      devices.remove { uuid: unregisterUuid }, (err, devicedata) ->
-        if err or devicedata == 0
-          return callback hyGaError(404,'Device not found or token not valid')
-        rmdevices.insert toDevice, ->
-          clearCache unregisterUuid, =>
-            callback null, uuid: unregisterUuid
+      devices.remove { _id: toDeviceUuid }, (error, result) ->
 
+        return callback hyGaError(505, 'Mongo error', error.message) if error?
+        return callback hyGaError(404, 'Unregister failed') if result == 0
+
+        rmdevices.insert toDevice, ->
+          clearCache toDeviceUuid, =>
+            callback null

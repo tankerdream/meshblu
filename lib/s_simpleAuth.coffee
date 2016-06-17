@@ -76,6 +76,7 @@ class SimpleAuth
 
             callback null, openByDefault
 
+# 不能使用sesToken调用的函数一定要预先删除 sesToken
   canConfigure: (fromDevice, toDevice, sesToken, callback) =>
 
     return callback null, true, true if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
