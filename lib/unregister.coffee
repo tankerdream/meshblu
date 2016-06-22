@@ -27,6 +27,9 @@ module.exports = (fromDevice, toDeviceUuid, emitToClient, callback=->) ->
         return callback hyGaError(505, 'Mongo error', error.message) if error?
         return callback hyGaError(404, 'Unregister failed') if result == 0
 
+        toDevice._id = toDevice.uuid
+        delete toDevice.uuid
+
         rmdevices.insert toDevice, ->
           clearCache toDeviceUuid, =>
             callback null
