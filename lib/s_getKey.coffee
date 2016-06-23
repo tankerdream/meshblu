@@ -15,7 +15,7 @@ _getKey = (device,callback) ->
 module.exports = (fromDevice, params, callback=_.noop, dependencies={}) ->
 
   debug 'params', params
-  return _getKey(fromDevice,callback) unless params.uuid?
+  return _getKey(fromDevice, callback) unless params.uuid?
 
   getDevice = dependencies.getDevice ? require './getDevice'
 
