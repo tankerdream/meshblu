@@ -79,7 +79,7 @@ class Device
       debug 'fetch uuid', @uuid
       @devices.findOne _id: @uuid, (error, device) =>
         @fatalIfNoPrimary error
-        return callback hyGaError(404,'Device not founds') unless device?
+        return callback hyGaError(404, 'Device not founds', @uuid) unless device?
 
         debug 'findOne device', device
         device.uuid = device._id

@@ -1,11 +1,10 @@
 _ = require 'lodash'
 async = require 'async'
 config = require '../config'
-debug = require('debug')('meshblu:message-io-client')
+debug = require('debug')('hyga:message-io-client')
 {createClient} = require './redis'
 {EventEmitter2} = require 'eventemitter2'
 Subscriber = require './Subscriber'
-
 s_securityImpl = require './s_getSecurityImpl'
 getDevice = require './getDevice'
 hyGaError = require('./models/hyGaError');
@@ -30,31 +29,34 @@ class MessageIOClient extends EventEmitter2
 
   subBroadcast: (fromDevice, uuids, callback =  _.noop) =>
     uuids = fromDevice.owner unless uuids?
-    uuids = [ uuids ] if typeof uuids == 'string'
+    uuids = [ uuids ] unless _.isArray uuids
 
+    debug 'getDevice', uuids
     async.each uuids, (uuid, done) =>
-      getDevice uuid,(error,check)=>
+      getDevice uuid, (error,check) =>
+
+        debug 'getDevice error', error
         return callback error if error?
-        s_securityImpl.canDiscover fromDevice, check, (error, permission)=>
+        s_securityImpl.canDiscover fromDevice, check, null, (error, permission)=>
 
           debug 'subBroadcast error', error
-          return callback error if error?
+          debug 'subBroadcast permission',permission
+          return callback error if error? or !permission
 
-          debug 'subBroadcast permission', permission
-          return callback hyGaError(401,'No permission', {uuid:uuid}) unless permission
           @subscriber.subscribe 'broadcast', uuid, done
     , (err)->
-        retrun callback hyGaError(500, err) if err
-        callback null
+        return callback hyGaError(500, err) if err
+        callback null, {uuids: uuids}
 
   unsubBroadcast: (fromDevice, uuids, callback = _.noop) =>
+    debug 'unsubBroadcast uuids be', uuids
     uuids = fromDevice.owner unless uuids?
-    uuids = [ uuids ] if typeof uuids == 'string'
-
+    uuids = [ uuids ] unless _.isArray uuids
+    debug 'unsubBroadcast uuids', uuids
     async.each uuids, (uuid, done) =>
       @subscriber.unsubscribe 'broadcast', uuid, done
     , (err)->
-        retrun callback hyGaError(500, err) if err
+        return callback hyGaError(500, err) if err
         callback null
 
   unsubscribe: (uuid, subscriptionTypes, callback) =>

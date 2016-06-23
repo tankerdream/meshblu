@@ -65,7 +65,7 @@ class SimpleAuth
 
           return callback null, true if toDeviceUuid == fromDeviceUuid
 
-          return callback null, false if resolvedBlacklist? && _.contains(resolvedBlacklist, fromDeviceUuid)
+          return callback hyGaError(401, 'Unauthorized'), false if resolvedBlacklist? && _.contains(resolvedBlacklist, fromDeviceUuid)
 
           return callback null, true if openByDefault
 
@@ -87,25 +87,19 @@ class SimpleAuth
 
   canDiscover: (fromDevice, toDevice, sesToken, callback) =>
 
-    return @asyncCallback(null, false, callback) if !fromDevice || !toDevice
+    return callback null, true, true if fromDevice.uuid == toDevice.uuid || toDevice.owner == fromDevice.uuid
 
     defaultAuth = @_check_authority(fromDevice,toDevice)
 
     debug 'canDiscover defaultAuth', defaultAuth
 
     @_s_checkLists fromDevice, toDevice, toDevice.whitelist, toDevice.blacklist, defaultAuth, (error, inList) =>
-      return callback error callback error if error?
+      return callback error if error?
       return callback null, inList
 
-      if sesToken?
-        return @authSessionToken(
-          toDevice.uuid
-          sesToken
-          (error, result) =>
-            return @asyncCallback(error, false, callback) if error?
-            return @asyncCallback(null, result?, callback)
-        )
-      @asyncCallback(null, false, callback)
+      return callback hyGaError(401,'Unauthorized') unless sesToken?
+      @_authSesToken toDevice.uuid, sesToken, (error, verified) ->
+        return callback error, verified
 
   canSend: (fromDevice, toDevice, token, callback) =>
 

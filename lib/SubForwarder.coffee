@@ -41,8 +41,6 @@ connectBroadcastIO = (response) ->
 
     response.write(JSON.stringify(respData))
 
-  response.write(JSON.stringify({s:true}))
-
   response.on 'close', ->
     msgIOClient.close()
 
@@ -50,9 +48,12 @@ connectBroadcastIO = (response) ->
 
 class SubForwarder
 
-  subBroadcast : (askingDevice, response, uuids) ->
+  subBroadcast : (askingDevice, response, uuids, callback) ->
+
     messageIOClient = connectBroadcastIO(response)
-    messageIOClient.subBroadcast askingDevice, uuids
+    messageIOClient.subBroadcast askingDevice, uuids, (error)->
+      return callback error if error?
+      response.write(JSON.stringify({s:true}))
 
 
   subscribe : (askingDevice, response, uuid) ->
