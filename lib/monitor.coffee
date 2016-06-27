@@ -1,10 +1,11 @@
 redis = require './redis'
 debug = require('debug')('monitor')
 
-countApi = (channelUuid, apiType) ->
+cnt = (channelUuid, type, length = 1) ->
   return  unless channelUuid? or apiType?
-  redis.hincrby "cnt:#{channelUuid}", "#{apiType}", 1, (error, result) ->
+
+  redis.hincrby "cnt:#{channelUuid}", "#{type}", length, (error, result) ->
     debug 'error', error, result if error
     return
 
-module.exports = countApi
+module.exports = cnt
