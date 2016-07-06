@@ -4,7 +4,8 @@ debug = require('debug')('monitor')
 cnt = (channelUuid, type, length = 1) ->
   return  unless channelUuid? or apiType?
 
-  redis.hincrby "cnt:#{channelUuid}", "#{type}", length, (error, result) ->
+  date = new Date().getDate()
+  redis.hincrby "cnt:#{date}:#{channelUuid}", "#{type}", length, (error, result) ->
     debug 'error', error, result if error
     return
 

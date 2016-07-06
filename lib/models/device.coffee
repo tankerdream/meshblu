@@ -318,7 +318,7 @@ class Device
 #    将最后验证失败的token放入黑名单,加快后续请求的验证速度
   _storeInvalidTokenInBlacklist: (token, callback=->) =>
     return callback null, false unless @redis?.set?
-    @redis.set "meshblu-token-black-list:#{@uuid}:#{token}", '', callback
+    @redis.set "token.black.list:#{@uuid}:#{token}", '', callback
 
 
 #    判断redis中是否有设备的指定token
@@ -329,7 +329,7 @@ class Device
 #    判断token是否在设备的token黑名单中
   _isTokenInBlacklist: (token, callback=->) =>
     return callback null, false unless @redis?.exists?
-    @redis.exists "meshblu-token-black-list:#{@uuid}:#{token}", callback
+    @redis.exists "token.black.list:#{@uuid}:#{token}", callback
 
   pushList: (listName,list,callback=->) =>
     @devices.update {'_id':@uuid}, {$addToSet:{"#{listName}":{$each:list}}},(error)=>
